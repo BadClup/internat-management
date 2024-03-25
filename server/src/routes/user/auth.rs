@@ -21,7 +21,7 @@ struct UserPublicData {
     id: u32,
     username: String,
     first_name: String,
-    second_name: String,
+    last_name: String,
     room_nr: Option<u32>,
 }
 
@@ -36,7 +36,7 @@ struct UserCredentials {
 struct UserRegisterDto {
     username: String,
     first_name: String,
-    second_name: String,
+    last_name: String,
     room_nr: u32,
 }
 

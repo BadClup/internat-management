@@ -1,0 +1,10 @@
+version: "3"
+
+services:
+  postgres:
+    build: ./db_docker
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=internat_management
+      - POSTGRES_PASSWORD=test
