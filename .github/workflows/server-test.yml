@@ -1,0 +1,20 @@
+on: [push]
+
+defaults:
+  run:
+    working-directory: ./server
+
+jobs:
+  server-cargo-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+        
+      - name: Build project
+        run: cargo build
+        
+      - name: Run tests
+        run: cargo test
