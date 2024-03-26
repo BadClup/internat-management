@@ -24,6 +24,15 @@ pub enum UserRole {
     resident,
 }
 
+impl UserRole {
+    pub fn to_string(&self) -> String {
+        match self {
+            UserRole::supervisor => "supervisor".to_string(),
+            UserRole::resident => "resident".to_string(),
+        }
+    }
+}
+
 impl PgHasArrayType for UserRole {
     fn array_type_info() -> PgTypeInfo {
         PgTypeInfo::with_name("user_role")
@@ -76,7 +85,7 @@ pub async fn register_users<'a>(
         first_names.push(user_data.first_name);
         last_names.push(user_data.last_name);
         room_numbers.push(user_data.room_nr as i32);
-        user_roles.push(UserRole::resident);
+        user_roles.push(UserRole::resident.to_string());
 
         let password = generate_random_password(8);
         let hashed_password = hash_password(&password);
@@ -88,7 +97,7 @@ pub async fn register_users<'a>(
         hashed_passwords.push(hashed_password.unwrap());
         passwords.push(password);
     }
-
+    
     let query = sqlx::query!(r#"
         INSERT INTO "user" (username, password, first_name, last_name, room_number, role)
         SELECT username, password, first_name,last_name, room_number, role
@@ -104,7 +113,7 @@ pub async fn register_users<'a>(
         first_names as Vec<String>,
         last_names as Vec<String>,
         room_numbers as Vec<i32>,
-        user_roles as Vec<UserRole>,
+        user_roles as Vec<String>,
     )
         .execute(&app_state.db_pool).await;
 
