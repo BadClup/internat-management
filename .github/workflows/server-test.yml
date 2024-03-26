@@ -12,6 +12,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+
+      - name: Run database
+        run: docker-compose up -d
         
       - name: Build project
         run: cargo build
