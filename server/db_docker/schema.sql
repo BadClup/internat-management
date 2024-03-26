@@ -1,4 +1,4 @@
-CREATE TYPE role AS ENUM ('supervisor', 'resident');
+CREATE TYPE user_role AS ENUM ('supervisor', 'resident');
 
 CREATE TABLE "user"
 (
@@ -8,5 +8,5 @@ CREATE TABLE "user"
     first_name  VARCHAR(255) NOT NULL,
     last_name   VARCHAR(255) NOT NULL,
     room_number int          NOT NULL,
-    role        role         NOT NULL
+    role        user_role    NOT NULL
 );
