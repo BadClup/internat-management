@@ -9,6 +9,7 @@ pub enum ApiResult<'a, T = Response> {
     NotFound,
     Sqlx(sqlx::Error),
     Anyhow(anyhow::Error),
+    Unknown(String),
     Custom(&'a str, StatusCode),
 }
 
@@ -21,6 +22,10 @@ impl <T> ApiResult<'_, T> {
             ApiResult::Sqlx(_) | ApiResult::Anyhow(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ApiResult::Ok(_) => StatusCode::OK,
             ApiResult::Custom(_, status_code) => *status_code,
+            ApiResult::Unknown(content) => {
+                eprintln!("Unknown error: {:?}", content);
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         }
     }
 }

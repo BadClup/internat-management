@@ -1,13 +1,17 @@
-use argon2::{Argon2, PasswordHasher};
+use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
 use axum::{Extension, Json};
 use axum::http::StatusCode;
 use axum_test::TestServer;
+use hmac::digest::KeyInit;
+use hmac::Hmac;
+use jwt::{AlgorithmType, Header, SignWithKey, Token};
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use sha2::Sha256;
 use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
 use crate::AppState;
 use crate::error::ApiResult;
@@ -42,11 +46,11 @@ impl PgHasArrayType for UserRole {
 
 #[derive(sqlx::FromRow, Serialize, Deserialize, Debug)]
 pub struct UserPublicData {
-    pub id: u32,
+    pub id: i32,
     pub username: String,
     pub first_name: String,
     pub last_name: String,
-    pub room_nr: Option<u32>,
+    pub room_nr: Option<i32>,
     pub role: UserRole,
 }
 
@@ -64,15 +68,85 @@ pub struct UserCredentials {
     pub password: String,
 }
 
+pub async fn login<'a>(
+    Extension(app_state): Extension<AppState>,
+    Json(user_credentials): Json<UserCredentials>,
+) -> ApiResult<'a, Json<serde_json::Value>> {
+    let user = sqlx::query!(r#"
+            SELECT id, username, first_name, last_name, room_number as room_nr, role as "role: UserRole", password
+            FROM "user"
+            WHERE username = $1
+        "#,
+        user_credentials.username,
+    )
+        .fetch_optional(&app_state.db_pool)
+        .await;
+
+    if let Err(e) = user {
+        return ApiResult::Sqlx(e);
+    }
+    let user = user.unwrap();
+
+    if let None = user {
+        return ApiResult::Custom("Invalid username", StatusCode::UNAUTHORIZED);
+    }
+    let user = user.unwrap();
+
+    let db_password_hash;
+    match PasswordHash::new(&user.password) {
+        Ok(v) => { db_password_hash = v }
+        Err(e) => { return ApiResult::Unknown(e.to_string()); }
+    };
+
+    let verify_result = Argon2::default()
+        .verify_password(user_credentials.password.as_bytes(), &db_password_hash);
+
+    if let Err(_) = verify_result {
+        return ApiResult::Custom("Password is incorrect", StatusCode::UNAUTHORIZED);
+    }
+
+    let jwt = serialize_jwt(UserPublicData {
+        id: user.id,
+        username: user.username,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        room_nr: user.room_nr,
+        role: user.role,
+    });
+    if let Err(e) = jwt {
+        return ApiResult::Anyhow(e);
+    }
+    let jwt = jwt.unwrap();
+
+    ApiResult::Ok(Json(json!({
+        "bearer_token": jwt,
+    })))
+}
+
+pub fn serialize_jwt(val: UserPublicData) -> anyhow::Result<String> {
+    let secret = std::env::var("SECRET")?;
+    let key: Hmac<Sha256> = Hmac::new_from_slice(secret.as_bytes())?;
+    let header = get_jwt_header();
+    let token_str = Token::new(header, val).sign_with_key(&key)?;
+
+    Ok(token_str.as_str().to_string())
+}
+
+fn get_jwt_header() -> Header {
+    Header {
+        algorithm: AlgorithmType::Hs256,
+        ..Default::default()
+    }
+}
+
 pub async fn register_users<'a>(
     Extension(app_state): Extension<AppState>,
     Json(users_data): Json<Vec<UserRegisterDto>>,
 ) -> ApiResult<'a, Json<Vec<UserCredentials>>> {
-    
     if users_data.len() == 0 {
         return ApiResult::Custom("No users to register", StatusCode::BAD_REQUEST);
     }
-    
+
     let mut usernames = vec![];
     let mut passwords = vec![];
     let mut hashed_passwords = vec![];
@@ -99,7 +173,7 @@ pub async fn register_users<'a>(
         hashed_passwords.push(hashed_password.unwrap());
         passwords.push(password);
     }
-    
+
     let query = sqlx::query!(r#"
         INSERT INTO "user" (username, password, first_name, last_name, room_number, role)
         SELECT username, password, first_name,last_name, room_number, role
@@ -156,14 +230,14 @@ async fn test_users_register() {
     let app_state = AppState::new().await;
     let app = crate::get_app(app_state.clone());
     let server = TestServer::new(app).expect("Failed to create test server");
-    
+
     let res = server.post("/user/register-many")
         .content_type("application/json")
         .json(&json!(users_data))
         .await;
-    
+
     res.assert_status_ok();
-    
+
     sqlx::query!("DELETE FROM \"user\" WHERE username = 'test1' OR username = 'test2'")
         .execute(&app_state.db_pool)
         .await
