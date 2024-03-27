@@ -1,6 +1,3 @@
-use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
-use argon2::password_hash::rand_core::OsRng;
-use argon2::password_hash::SaltString;
 use axum::{Extension, Json};
 use axum::http::StatusCode;
 use axum_test::TestServer;
@@ -11,8 +8,9 @@ use rand::distributions::Alphanumeric;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sha2::Sha256;
+use sha2::{Digest, Sha256, Sha512};
 use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
+
 use crate::AppState;
 use crate::error::ApiResult;
 
@@ -20,7 +18,6 @@ use crate::error::ApiResult;
 pub struct StudentSpecificData {
     pub room_id: u32,
 }
-
 
 #[derive(sqlx::Type, Debug, Serialize, Deserialize)]
 #[sqlx(type_name = "user_role", rename_all = "lowercase")]
@@ -92,17 +89,8 @@ pub async fn login<'a>(
     }
     let user = user.unwrap();
 
-    let db_password_hash;
-    match PasswordHash::new(&user.password) {
-        Ok(v) => { db_password_hash = v }
-        Err(e) => { return ApiResult::Unknown(e.to_string()); }
-    };
-
-    let verify_result = Argon2::default()
-        .verify_password(user_credentials.password.as_bytes(), &db_password_hash);
-
-    if let Err(_) = verify_result {
-        return ApiResult::Custom("Password is incorrect", StatusCode::UNAUTHORIZED);
+    if sha512(&user_credentials.password) != user.password {
+        return ApiResult::Custom("Invalid password", StatusCode::UNAUTHORIZED);
     }
 
     let jwt = serialize_jwt(UserPublicData {
@@ -164,13 +152,8 @@ pub async fn register_users<'a>(
         user_roles.push(UserRole::Resident.to_string());
 
         let password = generate_random_password(8);
-        let hashed_password = hash_password(&password);
 
-        if let Err(e) = hashed_password {
-            return ApiResult::Anyhow(e);
-        }
-
-        hashed_passwords.push(hashed_password.unwrap());
+        hashed_passwords.push(sha512(&password));
         passwords.push(password);
     }
 
@@ -244,15 +227,11 @@ async fn test_users_register() {
         .expect("Failed to delete test users");
 }
 
-fn hash_password(passwd: &str) -> anyhow::Result<String> {
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-
-    let hashed_passwd = argon2
-        .hash_password(passwd.as_bytes(), &salt)
-        .map_err(|_| anyhow::Error::msg("Failed to hash password"))?;
-
-    Ok(hashed_passwd.to_string())
+fn sha512(data: &str) -> String {
+    let mut hasher = Sha512::new();
+    hasher.update(data.as_bytes());
+    let result = hasher.finalize();
+    format!("{:x?}", result)
 }
 
 fn generate_random_password(length: usize) -> String {
