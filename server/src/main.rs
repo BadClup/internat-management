@@ -11,23 +11,32 @@ pub struct AppState {
     pub db_pool: sqlx::PgPool,
 }
 
+impl AppState {
+    pub async fn new() -> Self {
+        dotenv::dotenv().ok().expect("Failed to load .env file");
+
+        let database_url = std::env::var("DATABASE_URL")
+            .unwrap_or(DEFAULT_DATABASE_URL.to_string());
+
+        Self {
+            db_pool: sqlx::PgPool::connect(&database_url)
+                .await
+                .unwrap(),
+        }
+    }
+}
+
+pub fn get_app(app_state: AppState) -> Router {
+    Router::new()
+        .nest("/", routes::get_router())
+        .layer(Extension(app_state))
+}
+
 #[tokio::main]
 async fn main() {
-    dotenv::dotenv().ok().expect("Failed to load .env file");
-
-    let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or(DEFAULT_DATABASE_URL.to_string());
-
-    let app_state = AppState {
-        db_pool: sqlx::PgPool::connect(&database_url)
-            .await
-            .unwrap(),
-    };
-
-    let router = Router::new()
-        .nest("/", routes::get_router())
-        .layer(Extension(app_state));
-
+    let app_state = AppState::new().await;
+    let router = get_app(app_state);
+    
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await
         .unwrap();

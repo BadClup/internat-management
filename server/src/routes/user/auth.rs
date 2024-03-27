@@ -3,9 +3,11 @@ use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
 use axum::{Extension, Json};
 use axum::http::StatusCode;
+use axum_test::TestServer;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
 use crate::AppState;
 use crate::error::ApiResult;
@@ -16,19 +18,18 @@ pub struct StudentSpecificData {
 }
 
 
-#[allow(non_camel_case_types)]
 #[derive(sqlx::Type, Debug, Serialize, Deserialize)]
 #[sqlx(type_name = "user_role", rename_all = "lowercase")]
 pub enum UserRole {
-    supervisor,
-    resident,
+    Supervisor,
+    Resident,
 }
 
 impl UserRole {
     pub fn to_string(&self) -> String {
         match self {
-            UserRole::supervisor => "supervisor".to_string(),
-            UserRole::resident => "resident".to_string(),
+            UserRole::Supervisor => "supervisor".to_string(),
+            UserRole::Resident => "resident".to_string(),
         }
     }
 }
@@ -39,7 +40,7 @@ impl PgHasArrayType for UserRole {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(sqlx::FromRow, Serialize, Deserialize, Debug)]
 pub struct UserPublicData {
     pub id: u32,
     pub username: String,
@@ -81,11 +82,12 @@ pub async fn register_users<'a>(
     let mut user_roles = vec![];
 
     for user_data in users_data {
+        println!("user_data: {:?}\n\n", user_data);
         usernames.push(user_data.username);
         first_names.push(user_data.first_name);
         last_names.push(user_data.last_name);
         room_numbers.push(user_data.room_nr as i32);
-        user_roles.push(UserRole::resident.to_string());
+        user_roles.push(UserRole::Resident.to_string());
 
         let password = generate_random_password(8);
         let hashed_password = hash_password(&password);
@@ -101,13 +103,14 @@ pub async fn register_users<'a>(
     let query = sqlx::query!(r#"
         INSERT INTO "user" (username, password, first_name, last_name, room_number, role)
         SELECT username, password, first_name,last_name, room_number, role
-        FROM UNNEST($1::text[]) username,
-           UNNEST($2::text[]) password,
-           UNNEST($3::text[]) first_name,
-           UNNEST($4::text[]) last_name,
-           UNNEST($5::int[]) room_number,
-           UNNEST($6::user_role[]) role;
-    "#,
+        FROM UNNEST(
+           $1::text[],
+           $2::text[],
+           $3::text[],
+           $4::text[],
+           $5::int[],
+           $6::user_role[]
+        ) as t(username, password, first_name, last_name, room_number, role); "#,
         usernames.clone() as Vec<String>,
         hashed_passwords as Vec<String>,
         first_names as Vec<String>,
@@ -133,6 +136,40 @@ pub async fn register_users<'a>(
     return ApiResult::Ok(Json(users_credentials));
 }
 
+#[tokio::test]
+async fn test_users_register() {
+    let users_data = vec![
+        UserRegisterDto {
+            username: "test1".to_string(),
+            first_name: "Test".to_string(),
+            last_name: "One".to_string(),
+            room_nr: 1,
+        },
+        UserRegisterDto {
+            username: "test2".to_string(),
+            first_name: "Test".to_string(),
+            last_name: "Two".to_string(),
+            room_nr: 2,
+        },
+    ];
+
+    let app_state = AppState::new().await;
+    let app = crate::get_app(app_state.clone());
+    let server = TestServer::new(app).expect("Failed to create test server");
+    
+    let res = server.post("/user/register-many")
+        .content_type("application/json")
+        .json(&json!(users_data))
+        .await;
+    
+    res.assert_status_ok();
+    
+    sqlx::query!("DELETE FROM \"user\" WHERE username = 'test1' OR username = 'test2'")
+        .execute(&app_state.db_pool)
+        .await
+        .expect("Failed to delete test users");
+}
+
 fn hash_password(passwd: &str) -> anyhow::Result<String> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
@@ -150,4 +187,10 @@ fn generate_random_password(length: usize) -> String {
         .take(length)
         .map(char::from)
         .collect()
+}
+
+#[test]
+fn test_generate_random_password() {
+    let password = generate_random_password(2137);
+    assert_eq!(password.len(), 2137);
 }
