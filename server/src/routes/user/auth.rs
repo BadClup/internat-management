@@ -1,9 +1,9 @@
 use axum::{Extension, Json};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use axum_test::TestServer;
 use hmac::digest::KeyInit;
 use hmac::Hmac;
-use jwt::{AlgorithmType, Header, SignWithKey, Token};
+use jwt::{AlgorithmType, Header, SignWithKey, Token, VerifyWithKey};
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -19,7 +19,7 @@ pub struct StudentSpecificData {
     pub room_id: u32,
 }
 
-#[derive(sqlx::Type, Debug, Serialize, Deserialize)]
+#[derive(sqlx::Type, Debug, Serialize, Deserialize, Clone)]
 #[sqlx(type_name = "user_role", rename_all = "lowercase")]
 pub enum UserRole {
     Supervisor,
@@ -41,7 +41,7 @@ impl PgHasArrayType for UserRole {
     }
 }
 
-#[derive(sqlx::FromRow, Serialize, Deserialize, Debug)]
+#[derive(sqlx::FromRow, Serialize, Deserialize, Debug, Clone)]
 pub struct UserPublicData {
     pub id: i32,
     pub username: String,
@@ -63,6 +63,36 @@ pub struct UserRegisterDto {
 pub struct UserCredentials {
     pub username: String,
     pub password: String,
+}
+
+pub fn get_user_from_bearer<'a, T>(headers: HeaderMap) -> Result<UserPublicData, ApiResult<'a, T>> {
+    let authorization_header = headers.get("Authorization");
+
+    if let None = authorization_header {
+        return Err(ApiResult::Custom("Authorization header not found", StatusCode::UNAUTHORIZED));
+    }
+    let authorization_header = authorization_header.unwrap().to_str();
+
+    if let Err(e) = authorization_header {
+        return Err(ApiResult::Unknown(e.to_string()));
+    }
+    let authorization_header = authorization_header.unwrap();
+
+    let jwt = authorization_header.strip_prefix("Bearer ");
+
+    if let None = jwt {
+        return Err(ApiResult::Custom(
+            "Your \"Authorization\" header needs to start with \"Bearer \" prefix",
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+    let jwt = jwt.unwrap().trim();
+
+
+    match deserialize_jwt(jwt) {
+        Ok(val) => Ok(val),
+        Err(_) => Err(ApiResult::Custom("Failed to deserialize jwt from Bearer token", StatusCode::INTERNAL_SERVER_ERROR))
+    }
 }
 
 pub async fn login<'a>(
@@ -120,6 +150,17 @@ pub fn serialize_jwt(val: UserPublicData) -> anyhow::Result<String> {
     Ok(token_str.as_str().to_string())
 }
 
+pub fn deserialize_jwt(token: &str) -> anyhow::Result<UserPublicData> {
+    let secret = std::env::var("SECRET")?;
+
+    let key: Hmac<Sha256> = Hmac::new_from_slice(secret.as_bytes())?;
+
+    let token: Token<Header, UserPublicData, _> =
+        VerifyWithKey::verify_with_key(token, &key)?;
+
+    Ok(token.claims().clone())
+}
+
 fn get_jwt_header() -> Header {
     Header {
         algorithm: AlgorithmType::Hs256,
@@ -127,12 +168,28 @@ fn get_jwt_header() -> Header {
     }
 }
 
-pub async fn register_users<'a>(
+pub async fn register_residents<'a>(
     Extension(app_state): Extension<AppState>,
+    header: HeaderMap,
     Json(users_data): Json<Vec<UserRegisterDto>>,
 ) -> ApiResult<'a, Json<Vec<UserCredentials>>> {
+    let user_public_data;
+
+    match get_user_from_bearer(header) {
+        Ok(v) => user_public_data = v,
+        Err(e) => return e,
+    };
+
+    // If not supervisor
+    if !matches!(user_public_data.role, UserRole::Supervisor) {
+        return ApiResult::Custom(
+            "You need to be a supervisor in order to register new residents",
+            StatusCode::FORBIDDEN,
+        );
+    }
+
     if users_data.len() == 0 {
-        return ApiResult::Custom("No users to register", StatusCode::BAD_REQUEST);
+        return ApiResult::Custom("No residents to register", StatusCode::BAD_REQUEST);
     }
 
     let mut usernames = vec![];
@@ -219,12 +276,7 @@ async fn test_users_register() {
         .json(&json!(users_data))
         .await;
 
-    res.assert_status_ok();
-
-    sqlx::query!("DELETE FROM \"user\" WHERE username = 'test1' OR username = 'test2'")
-        .execute(&app_state.db_pool)
-        .await
-        .expect("Failed to delete test users");
+    res.assert_status_forbidden();
 }
 
 fn sha512(data: &str) -> String {
