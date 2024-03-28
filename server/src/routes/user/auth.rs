@@ -276,7 +276,7 @@ async fn test_users_register() {
         .json(&json!(users_data))
         .await;
 
-    res.assert_status_forbidden();
+    res.assert_status_unauthorized();
 }
 
 fn sha512(data: &str) -> String {
