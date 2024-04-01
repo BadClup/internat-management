@@ -1,8 +1,7 @@
 use axum::Router;
 use axum::routing::post;
 
-mod change_location;
-mod auth;
+pub mod auth;
 
 pub fn get_router() -> Router {
     Router::new()

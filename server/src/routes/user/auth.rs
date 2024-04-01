@@ -1,6 +1,10 @@
 use axum::{Extension, Json};
 use axum::http::{HeaderMap, StatusCode};
+use axum::response::{IntoResponse, Response};
+use axum_extra::TypedHeader;
 use axum_test::TestServer;
+use headers::Authorization;
+use headers::authorization::Bearer;
 use hmac::digest::KeyInit;
 use hmac::Hmac;
 use jwt::{AlgorithmType, Header, SignWithKey, Token, VerifyWithKey};
@@ -51,6 +55,12 @@ pub struct UserPublicData {
     pub role: UserRole,
 }
 
+impl IntoResponse for UserPublicData {
+    fn into_response(self) -> Response {
+        (StatusCode::OK, Json(json!(self))).into_response()
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserRegisterDto {
     pub username: String,
@@ -65,33 +75,12 @@ pub struct UserCredentials {
     pub password: String,
 }
 
-pub fn get_user_from_bearer<'a, T>(headers: HeaderMap) -> Result<UserPublicData, ApiResult<'a, T>> {
-    let authorization_header = headers.get("Authorization");
-
-    if let None = authorization_header {
-        return Err(ApiResult::Custom("Authorization header not found", StatusCode::UNAUTHORIZED));
-    }
-    let authorization_header = authorization_header.unwrap().to_str();
-
-    if let Err(e) = authorization_header {
-        return Err(ApiResult::Unknown(e.to_string()));
-    }
-    let authorization_header = authorization_header.unwrap();
-
-    let jwt = authorization_header.strip_prefix("Bearer ");
-
-    if let None = jwt {
-        return Err(ApiResult::Custom(
-            "Your \"Authorization\" header needs to start with \"Bearer \" prefix",
-            StatusCode::BAD_REQUEST,
-        ));
-    }
-    let jwt = jwt.unwrap().trim();
-
-
-    match deserialize_jwt(jwt) {
-        Ok(val) => Ok(val),
-        Err(_) => Err(ApiResult::Custom("Failed to deserialize jwt from Bearer token", StatusCode::INTERNAL_SERVER_ERROR))
+pub fn get_user_from_header<'a, T>(token: TypedHeader<Authorization<Bearer>>) -> Result<UserPublicData, ApiResult<'a, T>> {
+    match deserialize_jwt(token.token()) {
+        Ok(user) => Ok(user),
+        Err(_) => Err(ApiResult::Custom(
+            "Failed to deserialize jwt from Bearer token", StatusCode::INTERNAL_SERVER_ERROR,
+        )),
     }
 }
 
@@ -110,7 +99,7 @@ pub async fn login<'a>(
         .await;
 
     if let Err(e) = user {
-        return ApiResult::Sqlx(e);
+        return ApiResult::from(e);
     }
     let user = user.unwrap();
 
@@ -132,7 +121,7 @@ pub async fn login<'a>(
         role: user.role,
     });
     if let Err(e) = jwt {
-        return ApiResult::Anyhow(e);
+        return ApiResult::from(e);
     }
     let jwt = jwt.unwrap();
 
@@ -170,18 +159,19 @@ fn get_jwt_header() -> Header {
 
 pub async fn register_residents<'a>(
     Extension(app_state): Extension<AppState>,
-    header: HeaderMap,
+    bearer_token: TypedHeader<headers::Authorization<Bearer>>,
     Json(users_data): Json<Vec<UserRegisterDto>>,
 ) -> ApiResult<'a, Json<Vec<UserCredentials>>> {
-    let user_public_data;
+    let user_public_data = get_user_from_header(bearer_token);
+    let user;
 
-    match get_user_from_bearer(header) {
-        Ok(v) => user_public_data = v,
-        Err(e) => return e,
+    match user_public_data {
+        Ok(user_) => user = user_,
+        Err(err) => return err,
     };
 
     // If not supervisor
-    if !matches!(user_public_data.role, UserRole::Supervisor) {
+    if !matches!(user.role, UserRole::Supervisor) {
         return ApiResult::Custom(
             "You need to be a supervisor in order to register new residents",
             StatusCode::FORBIDDEN,
@@ -235,7 +225,7 @@ pub async fn register_residents<'a>(
         .execute(&app_state.db_pool).await;
 
     if let Err(e) = query {
-        return ApiResult::Sqlx(e);
+        return ApiResult::from(e);
     }
 
     let mut users_credentials = vec![];
@@ -282,8 +272,14 @@ async fn test_users_register() {
 fn sha512(data: &str) -> String {
     let mut hasher = Sha512::new();
     hasher.update(data.as_bytes());
-    let result = hasher.finalize();
-    format!("{:x?}", result)
+    let hash = hasher.finalize();
+
+    let mut hash_string = "".to_string();
+    for byte in hash.iter() {
+        hash_string = format!("{}{:02x}", hash_string, byte);
+    }
+
+    hash_string
 }
 
 fn generate_random_password(length: usize) -> String {
