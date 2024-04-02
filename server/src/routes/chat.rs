@@ -1,17 +1,23 @@
+use std::fmt::format;
+use std::future::Future;
 use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::Router;
+use axum::{Extension, Router};
 use axum::routing::get;
 use axum_extra::TypedHeader;
 use headers::authorization::Bearer;
 use headers::HeaderMap;
+use rdkafka::error::KafkaResult;
 use rdkafka::Message as KraftMessage;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sqlx::{Error, PgPool};
+use sqlx::postgres::PgQueryResult;
 use tokio::sync::Mutex;
+use crate::AppState;
 
 use crate::error::ApiResult;
 use crate::routes::user::auth::{get_user_from_header, UserRole};
@@ -27,6 +33,7 @@ async fn ws_handler(
     ws: WebSocketUpgrade,
     bearer_token: TypedHeader<headers::Authorization<Bearer>>,
     header_map: HeaderMap,
+    Extension(app_state): Extension<AppState>,
 ) -> impl IntoResponse {
     let user_public_data = get_user_from_header(bearer_token);
     let user;
@@ -59,11 +66,11 @@ async fn ws_handler(
     };
 
     ApiResult::Ok(ws.on_upgrade(move |socket|
-        handle_socket(socket, resident_id)
+        handle_socket(socket, app_state, resident_id)
     ))
 }
 
-async fn handle_socket(ws: WebSocket, resident_id: u32) -> () {
+async fn handle_socket(ws: WebSocket, app_state: AppState, resident_id: u32) -> () {
     let ws = Arc::new(Mutex::new(ws));
     let ws_clone = ws.clone();
 
@@ -73,15 +80,22 @@ async fn handle_socket(ws: WebSocket, resident_id: u32) -> () {
         listen_for_messages(ws_clone, resident_id).await;
         is_listening_kafka_events = false;
     });
+    loop {
+        let mut ws = ws.lock().await;
 
-    while let Some(msg) = ws.lock().await.recv().await {
+        let msg = if let Some(message) = ws.recv().await {
+            message
+        } else {
+            continue;
+        };
+
         if !is_listening_kafka_events {
             break;
         }
 
         if let Err(err) = msg {
             let err_msg = format!("Error encountered while trying to decode websocket message, {}", err.to_string());
-            _ = ws_send_internal_error(&ws, err_msg).await;
+            _ = ws_send_internal_error(&mut ws, err_msg).await;
             continue;
         }
         let msg = if let Ok(message) = msg.unwrap().into_text() {
@@ -90,41 +104,45 @@ async fn handle_socket(ws: WebSocket, resident_id: u32) -> () {
             continue;
         };
 
-        let msg_json: Value = match serde_json::from_str(&msg) {
+        let ws_msg: WsMessage = match serde_json::from_str(&msg) {
             Ok(v) => v,
-            Err(_) => {
-                _ = ws_send_error(&ws, "Your message is not a valid json", StatusCode::BAD_REQUEST).await;
+            Err(err) => {
+                let err_msg = format!("Your request json in not a WsMessage type, error message: {}", err.to_string());
+                _ = ws_send_error(&mut ws, err_msg, StatusCode::BAD_REQUEST).await;
+
                 continue;
             }
         };
 
-        let msg_type = if let Some(message_type) = msg_json.get("type") {
-            message_type.to_string()
-        } else {
-            let message_type_field_not_found = "ERROR: Your request should contain \"type\" property".to_string();
-            _ = ws_send_error(&ws, message_type_field_not_found, StatusCode::BAD_REQUEST).await;
-            continue;
-        };
-
-        let unknown_message_type = format!("Unknown message type: {}", msg_type);
-
-        match msg_type {
+        match ws_msg {
+            WsMessage::ChatMessage(msg) => {
+                send_chat_message(&mut ws, msg, &app_state.db_pool).await;
+            }
             _ => {
-                _ = ws_send_error(&ws, unknown_message_type, StatusCode::BAD_REQUEST).await;
-                continue;
+                _ = ws_send_error(&mut ws, "unknown message type", StatusCode::BAD_REQUEST).await;
             }
         };
     }
+
+    if let Ok(ws) = Arc::try_unwrap(ws) {
+        _ = ws.into_inner().close().await;
+    };
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct ChatTextMessage {
     pub content: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, sqlx::Type, Clone)]
+struct LatLong {
+    latitude: f64,
+    longitude: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 struct ChatExitRequest {
-    pub initial_location: (f64, f64),
+    pub initial_location: LatLong,
     pub desired_location_name: String,
     pub request_content: String,
 
@@ -135,18 +153,20 @@ struct ChatExitRequest {
     pub came_back_approved_by: Option<u32>,
 }
 
-#[derive(Serialize, Deserialize)]
-enum ChatMessageType {
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum ChatMessageType {
     Text(ChatTextMessage),
     ExitRequest(ChatExitRequest),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ChatMessage {
+    #[serde(rename="message")]
     pub message_type: ChatMessageType,
     pub sender_id: i32,
     pub resident_id: i32,
-    pub created_at: i64,
+    pub created_at: Option<String>,
 }
 
 async fn listen_for_messages(ws: Arc<Mutex<WebSocket>>, resident_id: u32) {
@@ -156,6 +176,8 @@ async fn listen_for_messages(ws: Arc<Mutex<WebSocket>>, resident_id: u32) {
     };
 
     while let Ok(msg) = kafka_consumer.recv().await {
+        let mut ws = ws.lock().await;
+
         let msg = match msg.payload() {
             Some(message) => message,
             None => continue,
@@ -172,43 +194,106 @@ async fn listen_for_messages(ws: Arc<Mutex<WebSocket>>, resident_id: u32) {
         };
 
         if msg.resident_id != resident_id as i32 {
-            _ = ws_send_internal_error(&ws, "Unexpected error occurred").await;
+            _ = ws_send_internal_error(&mut ws, "Unexpected error occurred").await;
         }
-        
-        match ws_send_chat_message(&ws, msg).await {
-            Ok(_) => {},
+
+        match ws_send_chat_message(&mut ws, msg).await {
+            Ok(_) => {}
             Err(_) => return, // We end the function because it is too important to skip potential errors
         };
     }
 }
 
-async fn ws_send_chat_message(ws: &Arc<Mutex<WebSocket>>, msg: ChatMessage) -> Result<(), axum_core::Error> {
+async fn send_chat_message(ws: &mut WebSocket, mut msg: ChatMessage, db_pool: &PgPool) {
+    let db_message = sqlx::query!(
+        r#"
+            INSERT INTO "message" (sender_id, recipient_id, created_at)
+            VALUES ($1, $2, NOW())
+            RETURNING id, created_at
+        "#,
+        msg.sender_id,
+        msg.resident_id,
+    )
+        .fetch_one(db_pool)
+        .await;
+
+    let db_message = match db_message {
+        Ok(msg) => msg,
+        Err(err) => {
+            _ = ws_send_internal_error(ws, err.to_string()).await;
+            return;
+        }
+    };
+    
+    msg.created_at = Some(db_message.created_at.to_string());
+
+    let pg_query = match msg.clone().message_type {
+        ChatMessageType::Text(text_message) => {
+            sqlx::query!(r#"
+                            INSERT INTO "text_message" (message_id, content)
+                            VALUES ($1, $2)
+                        "#,
+                        db_message.id,
+                        text_message.content,
+                    )
+                .execute(db_pool)
+                .await
+        }
+        ChatMessageType::ExitRequest(exit_request) => {
+            sqlx::query!(r#"
+                            INSERT INTO "exit_request_message" (message_id, initial_location, desired_location_name, request_content)
+                            VALUES ($1, $2, $3, $4)
+                        "#,
+                        db_message.id,
+                        exit_request.initial_location as LatLong,
+                        exit_request.desired_location_name,
+                        exit_request.request_content,
+                    )
+                .execute(db_pool)
+                .await
+        }
+    };
+    
+    if let Err(err) = pg_query {
+        _ = ws_send_internal_error(ws, err.to_string()).await;
+        return;
+    }
+    
+    match kafka::send_chat_message(msg, db_message.id as u32).await {
+        Ok(_) => {},
+        Err(_) => {
+            _ = ws_send_internal_error(ws, "Failed to send message to kafka").await;
+        },
+    };
+}
+
+async fn ws_send_chat_message(ws: &mut WebSocket, msg: ChatMessage) -> Result<(), axum_core::Error> {
     let msg = WsMessage::ChatMessage(msg);
 
     ws_send(ws, msg).await
 }
 
-async fn ws_send_error<T>(ws: &Arc<Mutex<WebSocket>>, msg: T, status_code: StatusCode) -> Result<(), axum_core::Error> where T: Into<String> {
+async fn ws_send_error<T>(ws: &mut WebSocket, msg: T, status_code: StatusCode) -> Result<(), axum_core::Error> where T: Into<String> {
     let msg = (msg.into(), status_code);
     let msg = WsMessage::Error(web_sockets::Error::from(msg));
 
     ws_send(ws, msg).await
 }
 
-async fn ws_send_internal_error<T>(ws: &Arc<Mutex<WebSocket>>, msg: T) -> Result<(), axum_core::Error> where T: Into<String> {
+async fn ws_send_internal_error<T>(ws: &mut WebSocket, msg: T) -> Result<(), axum_core::Error> where T: Into<String> {
     let msg = msg.into();
     let msg = WsMessage::Error(web_sockets::Error::from(msg));
 
     ws_send(ws, msg).await
 }
 
-async fn ws_send(ws: &Arc<Mutex<WebSocket>>, msg: WsMessage) -> Result<(), axum_core::Error> {
+async fn ws_send(ws: &mut WebSocket, msg: WsMessage) -> Result<(), axum_core::Error> {
     let msg_json = match serde_json::to_string(&msg) {
         Ok(v) => v,
         Err(e) => return Err(axum_core::Error::new(e)),
     };
 
-    ws.lock().await.send(
+    ws.send(
         Message::Text(msg_json)
     ).await
 }
