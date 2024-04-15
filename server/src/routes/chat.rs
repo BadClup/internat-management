@@ -20,7 +20,7 @@ use tokio::sync::Mutex;
 use crate::AppState;
 
 use crate::error::ApiResult;
-use crate::routes::user::auth::{get_user_from_header, UserRole};
+use crate::routes::user::auth::{get_user_from_header, UserPublicData, UserRole};
 use crate::utils::{kafka, web_sockets};
 use crate::utils::web_sockets::WsMessage;
 
@@ -66,11 +66,11 @@ async fn ws_handler(
     };
 
     ApiResult::Ok(ws.on_upgrade(move |socket|
-        handle_socket(socket, app_state, resident_id)
+        handle_socket(socket, app_state, resident_id, user)
     ))
 }
 
-async fn handle_socket(ws: WebSocket, app_state: AppState, resident_id: u32) -> () {
+async fn handle_socket(ws: WebSocket, app_state: AppState, resident_id: u32, user: UserPublicData) -> () {
     let ws = Arc::new(Mutex::new(ws));
     let ws_clone = ws.clone();
 
@@ -108,7 +108,7 @@ async fn handle_socket(ws: WebSocket, app_state: AppState, resident_id: u32) -> 
             Ok(v) => v,
             Err(err) => {
                 let err_msg = format!("Your request json in not a WsMessage type, error message: {}", err.to_string());
-                _ = ws_send_error(&mut ws, err_msg, StatusCode::BAD_REQUEST).await;
+                _ = ws_send_status_msg(&mut ws, err_msg, StatusCode::BAD_REQUEST).await;
 
                 continue;
             }
@@ -116,10 +116,10 @@ async fn handle_socket(ws: WebSocket, app_state: AppState, resident_id: u32) -> 
 
         match ws_msg {
             WsMessage::ChatMessage(msg) => {
-                send_chat_message(&mut ws, msg, &app_state.db_pool).await;
+                send_chat_message(&mut ws, msg, &app_state.db_pool, &user).await;
             }
             _ => {
-                _ = ws_send_error(&mut ws, "unknown message type", StatusCode::BAD_REQUEST).await;
+                _ = ws_send_status_msg(&mut ws, "unknown message type", StatusCode::BAD_REQUEST).await;
             }
         };
     }
@@ -162,9 +162,8 @@ pub enum ChatMessageType {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ChatMessage {
-    #[serde(rename="message")]
+    #[serde(flatten)]
     pub message_type: ChatMessageType,
-    pub sender_id: i32,
     pub resident_id: i32,
     pub created_at: Option<String>,
 }
@@ -194,7 +193,7 @@ async fn listen_for_messages(ws: Arc<Mutex<WebSocket>>, resident_id: u32) {
         };
 
         if msg.resident_id != resident_id as i32 {
-            _ = ws_send_internal_error(&mut ws, "Unexpected error occurred").await;
+            _ = ws_send_status_msg(&mut ws, "Cannot send a message to someone else chat", StatusCode::BAD_REQUEST).await;
         }
 
         match ws_send_chat_message(&mut ws, msg).await {
@@ -204,14 +203,14 @@ async fn listen_for_messages(ws: Arc<Mutex<WebSocket>>, resident_id: u32) {
     }
 }
 
-async fn send_chat_message(ws: &mut WebSocket, mut msg: ChatMessage, db_pool: &PgPool) {
+async fn send_chat_message(ws: &mut WebSocket, mut msg: ChatMessage, db_pool: &PgPool, user: &UserPublicData) {
     let db_message = sqlx::query!(
         r#"
             INSERT INTO "message" (sender_id, recipient_id, created_at)
             VALUES ($1, $2, NOW())
             RETURNING id, created_at
         "#,
-        msg.sender_id,
+        user.id,
         msg.resident_id,
     )
         .fetch_one(db_pool)
@@ -260,7 +259,9 @@ async fn send_chat_message(ws: &mut WebSocket, mut msg: ChatMessage, db_pool: &P
     }
     
     match kafka::send_chat_message(msg, db_message.id as u32).await {
-        Ok(_) => {},
+        Ok(_) => {
+            _ = ws_send_status_msg(ws, "Message sent", StatusCode::OK).await;
+        },
         Err(_) => {
             _ = ws_send_internal_error(ws, "Failed to send message to kafka").await;
         },
@@ -273,16 +274,16 @@ async fn ws_send_chat_message(ws: &mut WebSocket, msg: ChatMessage) -> Result<()
     ws_send(ws, msg).await
 }
 
-async fn ws_send_error<T>(ws: &mut WebSocket, msg: T, status_code: StatusCode) -> Result<(), axum_core::Error> where T: Into<String> {
+async fn ws_send_status_msg<T>(ws: &mut WebSocket, msg: T, status_code: StatusCode) -> Result<(), axum_core::Error> where T: Into<String> {
     let msg = (msg.into(), status_code);
-    let msg = WsMessage::Error(web_sockets::Error::from(msg));
+    let msg = WsMessage::Message(web_sockets::StatusMessage::from(msg));
 
     ws_send(ws, msg).await
 }
 
 async fn ws_send_internal_error<T>(ws: &mut WebSocket, msg: T) -> Result<(), axum_core::Error> where T: Into<String> {
     let msg = msg.into();
-    let msg = WsMessage::Error(web_sockets::Error::from(msg));
+    let msg = WsMessage::Message(web_sockets::StatusMessage::from((msg, StatusCode::INTERNAL_SERVER_ERROR)));
 
     ws_send(ws, msg).await
 }
