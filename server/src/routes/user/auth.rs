@@ -114,21 +114,23 @@ pub async fn login<'a>(
         return ApiResult::Custom("Invalid password", StatusCode::UNAUTHORIZED);
     }
 
-    let jwt = serialize_jwt(UserPublicData {
+    let user_public_data = UserPublicData {
         id: user.id,
         username: user.username,
         first_name: user.first_name,
         last_name: user.last_name,
         room_nr: user.room_nr,
         role: user.role,
-    });
-    if let Err(e) = jwt {
-        return ApiResult::from(e);
-    }
-    let jwt = jwt.unwrap();
+    };
+    
+    let jwt = match serialize_jwt(user_public_data.clone()) {
+        Ok(val) => val,
+        Err(e) => return ApiResult::from(e),
+    };
 
     ApiResult::Ok(Json(json!({
         "bearer_token": jwt,
+        "user": user_public_data,
     })))
 }
 
