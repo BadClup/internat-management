@@ -5,8 +5,11 @@ import 'package:internat_management/router.dart';
 import 'package:internat_management/screens/login/login.dart';
 import 'package:internat_management/theme.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+Future main() async {
+  await dotenv.load(fileName: ".env");
+
   runApp(const MyApp());
 }
 
@@ -23,14 +26,16 @@ class MyApp extends StatelessWidget {
       ],
       child: BlocBuilder<UserBloc, UserState>(
         builder: (BuildContext context, UserState state) {
-          if (state.isAuth && state.user.role == UserRole.resident) {
+          if (state.bearerToken != null &&
+              state.user.role == UserRole.resident) {
             return MaterialApp.router(
               routerConfig: residentRouter,
               theme: lightTheme,
             );
           }
 
-          if (state.isAuth && state.user.role == UserRole.supervisor) {
+          if (state.bearerToken != null &&
+              state.user.role == UserRole.supervisor) {
             return MaterialApp.router(
               routerConfig: supervisorRouter,
               theme: lightTheme,
