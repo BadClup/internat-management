@@ -56,7 +56,6 @@ class LoginScreen extends StatelessWidget {
 
                           if (username.isEmpty || password.isEmpty) {
                             // TODO: show user error
-                            print("username and password must be not empty");
                             return;
                           }
 

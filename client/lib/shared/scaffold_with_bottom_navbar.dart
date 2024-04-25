@@ -3,9 +3,8 @@ import 'package:go_router/go_router.dart';
 
 import '../models/navigation_option.dart';
 
-class ScaffoldWithNavBar extends StatelessWidget {
-  /// Constructs an [ScaffoldWithNavBar].
-  const ScaffoldWithNavBar({
+class ScaffoldWithBottomNavBar extends StatelessWidget {
+  const ScaffoldWithBottomNavBar({
     required this.navigationShell,
     Key? key,
   }) : super(key: key ?? const ValueKey<String>('ScaffoldWithNavBar'));

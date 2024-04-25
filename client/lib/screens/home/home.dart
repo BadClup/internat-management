@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:internat_management/shared/navbar.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -6,12 +7,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const SizedBox(
-          width: double.infinity,
-          child: Text("Internat management", textAlign: TextAlign.right),
-        ),
-      ),
+      appBar: const SharedAppBar(),
       body: Container(
 
       ),

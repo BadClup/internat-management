@@ -26,6 +26,7 @@ class MyApp extends StatelessWidget {
       ],
       child: BlocBuilder<UserBloc, UserState>(
         builder: (BuildContext context, UserState state) {
+
           if (state.bearerToken != null &&
               state.user.role == UserRole.resident) {
             return MaterialApp.router(
@@ -41,6 +42,8 @@ class MyApp extends StatelessWidget {
               theme: lightTheme,
             );
           }
+
+          context.read<UserBloc>().add(const InitUser());
 
           return MaterialApp(
             home: LoginScreen(),

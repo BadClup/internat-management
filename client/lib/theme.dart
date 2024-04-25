@@ -10,7 +10,10 @@ class AppColors {
 ThemeData lightTheme = ThemeData(
   colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
   appBarTheme: AppBarTheme(
-    backgroundColor: Colors.purple[50],
+    backgroundColor: Colors.deepPurple[100],
+  ),
+  bottomAppBarTheme: BottomAppBarTheme(
+
   ),
   inputDecorationTheme: InputDecorationTheme(
       border: const OutlineInputBorder(
