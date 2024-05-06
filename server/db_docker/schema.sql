@@ -75,13 +75,13 @@ CREATE TABLE "rating"
 CREATE TABLE "room_rating"
 (
     id         SERIAL PRIMARY KEY,
-    rating_id  INT REFERENCES "rating" (id) ON DELETE CASCADE,
-    room_number INT CHECK (room_number > 0)
+    rating_id  INT REFERENCES "rating" (id) ON DELETE CASCADE NOT NULL,
+    room_number INT CHECK (room_number > 0) NOT NULL
 );
 
 CREATE TABLE "catering_rating"
 (
     id         SERIAL PRIMARY KEY,
-    rating_id  INT REFERENCES "rating" (id) ON DELETE CASCADE,
-    catering_id    INT REFERENCES "catering" (id) ON DELETE CASCADE
+    rating_id  INT REFERENCES "rating" (id) ON DELETE CASCADE NOT NULL,
+    catering_id    INT REFERENCES "catering" (id) ON DELETE CASCADE NOT NULL
 );

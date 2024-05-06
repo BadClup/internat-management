@@ -1,6 +1,6 @@
 use axum::{routing::get, Router};
 
-mod catering_rating;
+mod catering;
 mod rating;
 
 pub fn get_router() -> Router {
