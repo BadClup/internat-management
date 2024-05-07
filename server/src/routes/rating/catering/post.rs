@@ -8,11 +8,11 @@ use axum_test::TestServer;
 use chrono::{DateTime, Utc};
 use serde_json::json;
 
-use super::super::rating::{CateringRatingDto, GetRatingReq, RatingsDto};
-use crate::routes::user::auth::{get_user_from_bearer, UserRole};
+use super::super::rating::{CateringRatingDto, RatingsDto};
+use crate::routes::{rating::rating::PostRatingReq, user::auth::{get_user_from_bearer, UserRole}};
 use crate::{
     error::ApiResult,
-    routes::rating::rating::{PostCateringRatingReq, PostRatingReq},
+    routes::rating::rating::{PostCateringRatingReq},
     AppState,
 };
 
@@ -28,7 +28,6 @@ pub async fn post_catering_rating<'a>(
         Err(e) => return e,
     };
 
-    // If not a resident
     if !matches!(user_public_data.role, UserRole::Resident) {
         return ApiResult::Custom(
             "You need to be a resident in order to rate catering",
@@ -36,7 +35,6 @@ pub async fn post_catering_rating<'a>(
         );
     }
 
-    // TODO: finish it somehow
     let query = sqlx::query_as!(
         CateringRatingDto,
         r#"
@@ -53,8 +51,7 @@ pub async fn post_catering_rating<'a>(
             LIMIT 1
         ), new_catering_rating AS (
             INSERT INTO "catering_rating" (rating_id, catering_id)
-            SELECT nr.id, pc.id FROM new_rating nr
-            CROSS JOIN proper_catering pc
+            SELECT nr.id, pc.id FROM new_rating nr, proper_catering pc
             RETURNING catering_rating.id
         )
         SELECT 
@@ -80,7 +77,6 @@ pub async fn post_catering_rating<'a>(
     }
 
     let inserted_rating = query.unwrap();
-    println!("{}", inserted_rating.id);
     let mut result = vec![];
     result.push(inserted_rating);
 
@@ -91,7 +87,7 @@ pub async fn post_catering_rating<'a>(
 async fn test_post_catering_rating() {
     let ratings_data = PostRatingReq::Catering(PostCateringRatingReq {
         stars: 4,
-        served_at: Result::expect(DateTime::from_str("2020-01-09T00:00:00Z"), "wrong time"),
+        served_at: Result::expect(DateTime::from_str("2020-01-01T00:00:00Z"), "wrong time"),
     });
 
     let app_state = AppState::new().await;

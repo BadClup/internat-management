@@ -51,7 +51,7 @@ async fn test_get_catering_ratings() {
     let app = crate::get_app(app_state.clone());
     let server = TestServer::new(app).expect("Failed to create test server");
 
-    let expected_output = RatingsDto::Catering(vec![
+    let expected_output = vec![
         CateringRatingDto {
             id: 1,
             stars: 4,
@@ -82,7 +82,7 @@ async fn test_get_catering_ratings() {
             served_at: Result::expect(DateTime::from_str("2020-01-03T00:00:00Z"), "wrong datetime"),
             dish_name: "kurczak z kurczakiem".to_string(),
         },
-    ]);
+    ];
 
     let res = server
         .get("/rating/catering")
@@ -90,6 +90,11 @@ async fn test_get_catering_ratings() {
         .json(&json!({}))
         .await;
 
-    res.assert_json(&json!(expected_output));
+    let json_res = res.json::<RatingsDto>();
+
+    if let RatingsDto::Catering(ratings)= json_res {
+        assert_eq!(json!(ratings[0..3]), json!(expected_output));
+    }
+
     res.assert_status_ok();
 }

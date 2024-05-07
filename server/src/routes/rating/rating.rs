@@ -101,12 +101,41 @@ pub async fn post_rating<'a>(
                 );
             }
         }
-        PostRatingReq::Room(room_rating) => todo!(),
+        PostRatingReq::Room(_room_rating) => todo!(),
     }
 }
 
 // DELETE specific
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum DeleteRatingReq {
+    Catering(DeleteOneRatingReq),
+    Room(Vec<DeleteOneRatingReq>),
+}
 
-pub async fn delete_rating(Path(rating_type): Path<RatingType>) {
-    todo!()
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeleteOneRatingReq {
+    pub id: i32
+}
+
+pub async fn delete_rating<'a>(
+    Path(rating_type): Path<RatingType>,
+    app_state: Extension<AppState>,
+    header: HeaderMap,
+    Json(to_delete): Json<DeleteRatingReq>,
+) -> ApiResult<'a, Json<RatingsDto>> {
+    match to_delete {
+        DeleteRatingReq::Catering(catering_rating) => {
+            if let RatingType::Catering = rating_type {
+                return catering::delete::delete_catering_rating(app_state, header, catering_rating.id)
+                    .await;
+            } else {
+                return ApiResult::Custom(
+                    "Trying to rate room on catering route",
+                    StatusCode::BAD_REQUEST,
+                );
+            }
+        }
+        DeleteRatingReq::Room(_room_rating) => todo!(),
+    }
 }
