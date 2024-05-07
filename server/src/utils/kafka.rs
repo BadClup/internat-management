@@ -2,7 +2,6 @@ use std::time::Duration;
 use rdkafka::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::error::{KafkaError, KafkaResult};
-use rdkafka::producer::future_producer::OwnedDeliveryResult;
 use rdkafka::util::Timeout;
 use crate::routes::chat::ChatMessage;
 

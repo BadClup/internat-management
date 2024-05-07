@@ -9,7 +9,22 @@ pub enum ApiResult<'a, T> {
     Forbidden,
     NotFound,
     Internal(String),
+    Code(StatusCode),
     Custom(&'a str, StatusCode),
+}
+
+impl<'a, T> ApiResult<'a, T> {
+    pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> ApiResult<'a, U> {
+        match self {
+            ApiResult::Ok(v) => ApiResult::Ok(f(v)),
+            ApiResult::Unauthorized => ApiResult::Unauthorized,
+            ApiResult::Forbidden => ApiResult::Forbidden,
+            ApiResult::NotFound => ApiResult::NotFound,
+            ApiResult::Internal(msg) => ApiResult::Internal(msg),
+            ApiResult::Code(status_code) => ApiResult::Code(status_code),
+            ApiResult::Custom(msg, status_code) => ApiResult::Custom(msg, status_code),
+        }
+    }
 }
 
 impl<'a, T> From<sqlx::Error> for ApiResult<'a, T> {
@@ -32,6 +47,7 @@ impl<T> ApiResult<'_, T> {
             ApiResult::NotFound => StatusCode::NOT_FOUND,
             ApiResult::Ok(_) => StatusCode::OK,
             ApiResult::Custom(_, status_code) => *status_code,
+            ApiResult::Code(status_code) => *status_code,
             ApiResult::Internal(content) => {
                 eprintln!("Unknown error: {:?}", content);
                 StatusCode::INTERNAL_SERVER_ERROR
