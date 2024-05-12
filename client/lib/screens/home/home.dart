@@ -9,7 +9,6 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: const SharedAppBar(),
       body: Container(
-
       ),
     );
   }

@@ -21,4 +21,6 @@ class LoginUser extends UserEvent {
   List<Object> get props => [username, password];
 }
 
-class LogoutUser extends UserEvent {}
+class LogoutUser extends UserEvent {
+  const LogoutUser();
+}

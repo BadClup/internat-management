@@ -8,18 +8,29 @@ class AppColors {
 }
 
 ThemeData lightTheme = ThemeData(
-  colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+  colorScheme:
+      ColorScheme.fromSeed(seedColor: Colors.deepPurple, surface: Colors.white),
   appBarTheme: AppBarTheme(
     backgroundColor: Colors.deepPurple[100],
-  ),
-  bottomAppBarTheme: BottomAppBarTheme(
-
   ),
   inputDecorationTheme: InputDecorationTheme(
       border: const OutlineInputBorder(
           borderRadius: BorderRadius.all(Radius.circular(15))),
       fillColor: AppColors.primaryColor,
-      prefixIconColor: AppColors.primaryColor
-  ),
+      prefixIconColor: AppColors.primaryColor),
+);
 
+ThemeData darkTheme = ThemeData(
+  colorScheme: ColorScheme.fromSeed(
+      seedColor: Colors.purple,
+      surface: Colors.grey[700],
+      brightness: Brightness.dark),
+  appBarTheme: AppBarTheme(
+    backgroundColor: Colors.deepPurple[900],
+  ),
+  inputDecorationTheme: InputDecorationTheme(
+      border: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(15))),
+      fillColor: AppColors.primaryColor,
+      prefixIconColor: AppColors.primaryColor),
 );

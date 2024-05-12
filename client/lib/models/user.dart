@@ -3,8 +3,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:equatable/equatable.dart';
 import 'package:http/http.dart' as http;
-import 'package:internat_management/models/shared_prefs.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 enum UserRole { supervisor, resident }
 
@@ -65,21 +64,26 @@ class User extends Equatable {
   }
 
   Future<void> writeToStorage(String bearerToken) async {
-    SharedPreferences prefs = await SharedPrefs.getInstance();
+    const storage = FlutterSecureStorage();
 
-    prefs.setString('bearer_token', bearerToken);
-    prefs.setString('user', jsonEncode(this.toJson()));
-
-    print("successfully written to storage.");
+    await storage.write(key: "bearer_token", value: bearerToken);
+    await storage.write(key: "user", value: jsonEncode(toJson()));
   }
 
   static Future<StorageData> getFromStorage() async {
+    /*
     SharedPreferences prefs = await SharedPrefs.getInstance();
 
     String? bearerToken = prefs.getString('bearer_token');
     String? userJson = prefs.getString('user');
+     */
+    const storage = FlutterSecureStorage();
+
+    String? bearerToken = await storage.read(key: "bearer_token");
+    String? userJson = await storage.read(key: "user");
+
     User? user;
-    
+
     if (userJson != null) {
       Map<String, dynamic> userMap = jsonDecode(userJson);
       user = User(
@@ -93,21 +97,23 @@ class User extends Equatable {
       );
     }
 
-    return StorageData(
-      bearerToken: bearerToken,
-      user: user
-    );
+    return StorageData(bearerToken: bearerToken, user: user);
   }
 
   static Future<void> clearStorage() async {
+    /*
     SharedPreferences prefs = await SharedPrefs.getInstance();
 
     prefs.remove('bearerToken');
-    prefs.remove('user');
+    prefs.remove('user'); */
+
+    const storage = FlutterSecureStorage();
+
+    await storage.delete(key: "bearer_token");
+    await storage.delete(key: "user");
   }
 
-  static Future<LoginResponse> loginUser(
-      String username, String password) async {
+  static Future<LoginResponse> loginUser(String username, String password) async {
     final apiPrefix = dotenv.env["API_URL"];
     final url = Uri.parse('$apiPrefix/user/login');
     final body = jsonEncode({'username': username, 'password': password});

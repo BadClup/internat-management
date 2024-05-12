@@ -9,5 +9,5 @@ class UserState extends Equatable {
   const UserState({required this.user, this.bearerToken, this.error});
 
   @override
-  List<Object> get props => [];
+  List get props => [user, bearerToken, error];
 }

@@ -11,14 +11,18 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(title: BlocBuilder<UserBloc, UserState>(
       builder: (BuildContext context, UserState state) {
         return SizedBox(
-            width: double.infinity,
-            child: Text("${state.user.firstName} ${state.user.lastName}",
+          width: double.infinity,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                "${state.user.firstName} ${state.user.lastName} | pokój: ${state.user.roomNumber}",
                 textAlign: TextAlign.right,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500
-                ),
-            ),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
         );
       },
     ));

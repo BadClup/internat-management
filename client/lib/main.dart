@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:internat_management/blocs/theme/theme_bloc.dart';
 import 'package:internat_management/blocs/user/user_bloc.dart';
-import 'package:internat_management/models/user.dart';
 import 'package:internat_management/router.dart';
-import 'package:internat_management/screens/login/login.dart';
-import 'package:internat_management/theme.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -19,38 +17,19 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (context) => UserBloc(),
-        )
-      ],
-      child: BlocBuilder<UserBloc, UserState>(
-        builder: (BuildContext context, UserState state) {
-
-          if (state.bearerToken != null &&
-              state.user.role == UserRole.resident) {
+        providers: [
+          BlocProvider(create: (context) =>
+          UserBloc()
+            ..add(const InitUser())),
+          BlocProvider(create: (context) => ThemeBloc())
+        ],
+        child: BlocBuilder<ThemeBloc, ThemeState>(
+          builder: (context, state) {
             return MaterialApp.router(
-              routerConfig: residentRouter,
-              theme: lightTheme,
+              routerConfig: router,
+              theme: state.themeData,
             );
-          }
-
-          if (state.bearerToken != null &&
-              state.user.role == UserRole.supervisor) {
-            return MaterialApp.router(
-              routerConfig: supervisorRouter,
-              theme: lightTheme,
-            );
-          }
-
-          context.read<UserBloc>().add(const InitUser());
-
-          return MaterialApp(
-            home: LoginScreen(),
-            theme: lightTheme,
-          );
-        },
-      ),
-    );
+          },
+        ));
   }
 }

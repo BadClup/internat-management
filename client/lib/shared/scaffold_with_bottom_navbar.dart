@@ -13,14 +13,18 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
   static List<NavOption> navOptions = [
-    NavOption(route: "/", label: "Start", icon: const Icon(Icons.hexagon)),
+    NavOption(route: "/resident", label: "Start", icon: const Icon(Icons.hexagon)),
     NavOption(
-        route: "/chat", label: "Czat", icon: const Icon(Icons.chat_bubble)),
+        route: "/resident/chat", label: "Czat", icon: const Icon(Icons.chat_bubble)),
     NavOption(route: "/room", label: "Pokój", icon: const Icon(Icons.bookmark)),
     NavOption(
-        route: "/announcements",
+        route: "/resident/announcements",
         label: "Ogłoszenia",
         icon: const Icon(Icons.announcement)),
+    NavOption(
+        route: "/resident/settings",
+        label: "Ustawienia",
+        icon: const Icon(Icons.settings)),
   ];
 
   @override
