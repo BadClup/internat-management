@@ -1,17 +1,17 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct ChatTextMessage {
     pub content: String,
 }
 
-#[derive(Serialize, Deserialize, sqlx::Type, Clone)]
+#[derive(Serialize, Deserialize, sqlx::Type, Clone, Debug)]
 pub struct LatLong {
     pub latitude: f64,
     pub longitude: f64,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct ChatExitRequest {
     pub initial_location: LatLong,
     pub desired_location_name: String,
@@ -26,15 +26,25 @@ pub struct ChatExitRequest {
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(untagged)]
-pub enum ChatMessageType {
+pub enum ChatMessageKind {
     Text(ChatTextMessage),
     ExitRequest(ChatExitRequest),
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct ChatMessage {
+pub struct CreateChatMessageDto {
     #[serde(flatten)]
-    pub message_type: ChatMessageType,
+    pub message_kind: ChatMessageKind,
     pub resident_id: i32,
     pub created_at: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, sqlx::FromRow)]
+pub struct GetChatMessageDto {
+    #[serde(flatten)]
+    pub message_kind: ChatMessageKind,
+    pub id: i32,
+    pub recipient_id: i32,
+    pub sender_id: i32,
+    pub created_at: String,
 }

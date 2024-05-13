@@ -29,7 +29,8 @@ impl<'a, T> ApiResult<'a, T> {
 
 impl<'a, T> From<sqlx::Error> for ApiResult<'a, T> {
     fn from(err: sqlx::Error) -> Self {
-        Self::Internal(err.to_string())
+        eprintln!("Sqlx error: {}", err);
+        Self::Internal("Internal database error".into())
     }
 }
 

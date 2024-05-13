@@ -7,7 +7,7 @@ pub enum WsMessage {
     #[serde(rename = "status_message")]
     Message(StatusMessage),
     #[serde(rename = "chat_message")]
-    ChatMessage(chat::ChatMessage),
+    ChatMessage(chat::CreateChatMessageDto),
 }
 
 #[derive(Serialize, Deserialize)]

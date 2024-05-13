@@ -3,7 +3,7 @@ use rdkafka::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::error::{KafkaError, KafkaResult};
 use rdkafka::util::Timeout;
-use crate::routes::chat::ChatMessage;
+use crate::routes::chat::CreateChatMessageDto;
 
 pub fn get_chat_consumer(resident_id: u32) -> KafkaResult<StreamConsumer> {
     let topic_name = "resident-chat";
@@ -31,7 +31,7 @@ pub fn get_producer() -> KafkaResult<rdkafka::producer::FutureProducer> {
         .create()
 }
 
-pub async fn send_chat_message(chat_message: ChatMessage, message_id: u32) -> KafkaResult<()> {
+pub async fn send_chat_message(chat_message: CreateChatMessageDto, message_id: u32) -> KafkaResult<()> {
     let producer = get_producer()?;
     
     let parsed_message = match serde_json::to_string(&chat_message) {

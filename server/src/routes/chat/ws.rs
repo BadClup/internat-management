@@ -7,7 +7,7 @@ use headers::HeaderMap;
 use rdkafka::Message as KraftMessage;
 
 use crate::error::ApiResult;
-use crate::routes::chat::types::ChatMessage;
+use crate::routes::chat::types::CreateChatMessageDto;
 use crate::routes::user::auth::{get_user_from_header, UserRole};
 use crate::utils::{kafka, web_sockets};
 use crate::utils::web_sockets::WsMessage;
@@ -68,7 +68,7 @@ async fn handle_kafka_chat_events(mut ws: WebSocket, resident_id: u32) {
             Err(_) => continue,
         };
 
-        let msg: ChatMessage = match serde_json::from_str(msg) {
+        let msg: CreateChatMessageDto = match serde_json::from_str(msg) {
             Ok(message) => message,
             Err(_) => continue,
         };
@@ -87,7 +87,7 @@ async fn handle_kafka_chat_events(mut ws: WebSocket, resident_id: u32) {
 }
 
 
-async fn ws_send_chat_message(ws: &mut WebSocket, msg: ChatMessage) -> Result<(), axum_core::Error> {
+async fn ws_send_chat_message(ws: &mut WebSocket, msg: CreateChatMessageDto) -> Result<(), axum_core::Error> {
     let msg = WsMessage::ChatMessage(msg);
 
     ws_send(ws, msg).await
