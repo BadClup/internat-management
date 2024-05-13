@@ -1,5 +1,5 @@
 # Chat
-- `/chat` - GET - get access to older messages
+- `/chat/:recipient_id` - GET - get access to older messages
 - `/chat` - POST - send new message
 - `/chat/ws` - websocket (GET) - newest messages
 - `/chat/{message-id}` - PUT - update message
