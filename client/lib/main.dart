@@ -18,10 +18,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
         providers: [
-          BlocProvider(create: (context) =>
-          UserBloc()
-            ..add(const InitUser())),
-          BlocProvider(create: (context) => ThemeBloc())
+          BlocProvider(create: (context) => UserBloc()..add(const InitUser())),
+          BlocProvider(create: (context) => ThemeBloc()..add(InitTheme()))
         ],
         child: BlocBuilder<ThemeBloc, ThemeState>(
           builder: (context, state) {

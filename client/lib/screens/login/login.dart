@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:internat_management/blocs/user/user_bloc.dart';
 import 'package:internat_management/models/user.dart';
-import 'package:internat_management/theme.dart';
+import 'package:internat_management/models/theme.dart';
 
 class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:internat_management/theme.dart';
+import 'package:internat_management/models/theme.dart';
 
 import '../../blocs/theme/theme_bloc.dart';
 
-List<ThemeData> themes = [lightTheme, darkTheme];
+List<ThemeData> themes = [AppTheme.lightTheme, AppTheme.darkTheme];
 
 Future<void> themeDialogBuilder(BuildContext context) {
   return showDialog(
@@ -12,11 +12,10 @@ Future<void> themeDialogBuilder(BuildContext context) {
       builder: (BuildContext context) {
         return AlertDialog(
             title: const Text("Wybierz motyw"),
+            scrollable: true,
             content: BlocBuilder<ThemeBloc, ThemeState>(
               builder: (context, state) {
-                return SizedBox(
-                  height: 100.0,
-                  child: Column(
+                return Column(
                     children: [
                       RadioListTile(
                         value: themes[0],
@@ -43,8 +42,7 @@ Future<void> themeDialogBuilder(BuildContext context) {
                         title: const Text("Ciemny"),
                       )
                     ],
-                  ),
-                );
+                  );
               },
             ));
       });

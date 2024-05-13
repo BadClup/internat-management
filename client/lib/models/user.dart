@@ -55,11 +55,11 @@ class User extends Equatable {
 
   Map<String, dynamic> toJson() {
     return {
-      'username': this.username,
-      'first_name': this.firstName,
-      'last_name': this.lastName,
-      'room_nr': this.roomNumber,
-      'role': this.role == UserRole.resident ? 'Resident' : 'Supervisor',
+      'username': username,
+      'first_name': firstName,
+      'last_name': lastName,
+      'room_nr': roomNumber,
+      'role': role == UserRole.resident ? 'Resident' : 'Supervisor',
     };
   }
 
@@ -71,12 +71,6 @@ class User extends Equatable {
   }
 
   static Future<StorageData> getFromStorage() async {
-    /*
-    SharedPreferences prefs = await SharedPrefs.getInstance();
-
-    String? bearerToken = prefs.getString('bearer_token');
-    String? userJson = prefs.getString('user');
-     */
     const storage = FlutterSecureStorage();
 
     String? bearerToken = await storage.read(key: "bearer_token");
@@ -101,12 +95,6 @@ class User extends Equatable {
   }
 
   static Future<void> clearStorage() async {
-    /*
-    SharedPreferences prefs = await SharedPrefs.getInstance();
-
-    prefs.remove('bearerToken');
-    prefs.remove('user'); */
-
     const storage = FlutterSecureStorage();
 
     await storage.delete(key: "bearer_token");
