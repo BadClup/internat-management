@@ -20,14 +20,16 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     on<LoginUser>((event, emit) async {
       try {
 
+        emit(const UserState(user: User(), isLoading: true));
+
         final data = await User.loginUser(event.username, event.password);
         final user = data.user;
 
         await user.writeToStorage(data.bearerToken);
 
-        emit(UserState(user: user, error: "", bearerToken: data.bearerToken));
+        emit(UserState(user: user, bearerToken: data.bearerToken));
       } catch (e) {
-        emit(const UserState(user: User(), error: "Could not login user", bearerToken: null));
+        emit(const UserState(user: User(), error: "Could not login user"));
       }
     });
 
@@ -36,8 +38,6 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
       emit(const UserState(
         user: User(),
-        bearerToken: null,
-        error: null,
       ));
     });
   }

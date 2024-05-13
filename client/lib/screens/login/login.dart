@@ -20,11 +20,9 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<UserBloc, UserState>(
       listener: (context, state) {
-
         if (state.user.role == UserRole.resident) {
           context.go('/resident');
         }
-
       },
       child: Scaffold(
         body: Padding(
@@ -68,20 +66,29 @@ class LoginScreen extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: FilledButton(
-                          onPressed: () {
-                            final username = _usernameController.text;
-                            final password = _passwordController.text;
+                      child: BlocBuilder<UserBloc, UserState>(
+                        builder: (context, state) {
 
-                            if (username.isEmpty || password.isEmpty) {
-                              // TODO: show error to user
-                              return;
-                            }
+                          if(state.isLoading) {
+                            return const CircularProgressIndicator();
+                          }
 
-                            context.read<UserBloc>().add(LoginUser(
-                                username: username, password: password));
-                          },
-                          child: const Text("Zaloguj się")),
+                          return FilledButton(
+                              onPressed: () {
+                                final username = _usernameController.text;
+                                final password = _passwordController.text;
+
+                                if (username.isEmpty || password.isEmpty) {
+                                  // TODO: show error to user
+                                  return;
+                                }
+
+                                context.read<UserBloc>().add(LoginUser(
+                                    username: username, password: password));
+                              },
+                              child: const Text("Zaloguj się"));
+                        },
+                      ),
                     ),
                   ],
                 )
