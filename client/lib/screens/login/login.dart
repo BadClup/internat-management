@@ -29,70 +29,66 @@ class LoginScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Container(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.person),
-                      label: Text("Nazwa użytkownika")),
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                TextField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.key), label: Text("Hasło")),
-                ),
-                BlocBuilder<UserBloc, UserState>(
-                  builder: (context, state) {
-                    if (state.error != null) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 15),
-                        child: Text(
-                          "Nie udało się zalogować",
-                          style: TextStyle(color: AppColors.error),
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                Row(
+            child: BlocBuilder<UserBloc, UserState>(
+              builder: (context, state) {
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: BlocBuilder<UserBloc, UserState>(
-                        builder: (context, state) {
-
-                          if(state.isLoading) {
-                            return const CircularProgressIndicator();
-                          }
-
-                          return FilledButton(
-                              onPressed: () {
-                                final username = _usernameController.text;
-                                final password = _passwordController.text;
-
-                                if (username.isEmpty || password.isEmpty) {
-                                  // TODO: show error to user
-                                  return;
-                                }
-
-                                context.read<UserBloc>().add(LoginUser(
-                                    username: username, password: password));
-                              },
-                              child: const Text("Zaloguj się"));
-                        },
-                      ),
+                    TextField(
+                      controller: _usernameController,
+                      decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.person),
+                          label: const Text("Nazwa użytkownika"),
+                          errorText: state.error.loginInputError),
                     ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.key),
+                          label: const Text("Hasło"),
+                          errorText: state.error.passwordInputError),
+                    ),
+                    state.error.mainError != null
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 15),
+                            child: Text(
+                              state.error.mainError!,
+                              style: TextStyle(color: AppColors.error),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                            child: state.isLoading
+                                ? const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 10),
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : FilledButton(
+                                    onPressed: () {
+                                      final username =
+                                          _usernameController.text.trim();
+                                      final password =
+                                          _passwordController.text.trim();
+
+                                      context.read<UserBloc>().add(LoginUser(
+                                          username: username,
+                                          password: password));
+                                    },
+                                    child: const Text("Zaloguj się"))),
+                      ],
+                    )
                   ],
-                )
-              ],
+                );
+              },
             ),
           ),
         ),
