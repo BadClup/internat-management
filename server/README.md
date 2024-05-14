@@ -2,10 +2,10 @@
 ## Test users
 ### Resident
 login: bstrama  
-password: TODO
+password: 12345678
 ### Supervisor
 login: kierowniczka  
-password: TODO
+password: 12345678
 
 ## Routes
 In our RESTful API we provide 6 sections:
