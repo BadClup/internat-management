@@ -44,7 +44,7 @@ pub struct GetChatMessageDto {
     #[serde(flatten)]
     pub message_kind: ChatMessageKind,
     pub id: i32,
-    pub recipient_id: i32,
+    pub resident_id: i32,
     pub sender_id: i32,
     pub created_at: String,
 }

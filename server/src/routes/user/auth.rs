@@ -1,11 +1,8 @@
-use std::str::FromStr;
 use axum::{Extension, Json};
-use axum::http::{HeaderMap, StatusCode};
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum_extra::TypedHeader;
-use axum_test::http::HeaderName;
-use axum_test::TestServer;
-use headers::{Authorization, HeaderValue};
+use headers::Authorization;
 use headers::authorization::Bearer;
 use hmac::digest::KeyInit;
 use hmac::Hmac;
@@ -163,7 +160,7 @@ fn get_jwt_header() -> Header {
 
 pub async fn register_residents<'a>(
     Extension(app_state): Extension<AppState>,
-    bearer_token: TypedHeader<headers::Authorization<Bearer>>,
+    bearer_token: TypedHeader<Authorization<Bearer>>,
     Json(users_data): Json<Vec<UserRegisterDto>>,
 ) -> ApiResult<'a, Json<Vec<UserCredentials>>> {
     let user_public_data = get_user_from_header(bearer_token);
@@ -265,73 +262,94 @@ fn generate_random_password(length: usize) -> String {
         .collect()
 }
 
-#[test]
-fn test_generate_random_password() {
-    let password = generate_random_password(2137);
-    assert_eq!(password.len(), 2137);
-}
+#[cfg(test)]
+pub mod test {
+    use std::str::FromStr;
+    use axum_test::http::{HeaderName, HeaderValue};
+    use axum_test::TestServer;
+    use serde_json::json;
+    use crate::AppState;
+    use crate::routes::user::auth::{generate_random_password, UserRegisterDto, UserRole};
+    use crate::utils::tests::login_returning_bearer_token;
 
-#[tokio::test]
-async fn test_users_register() {
-    let users_data = vec![
-        UserRegisterDto {
-            username: "test1".to_string(),
-            first_name: "Test".to_string(),
-            last_name: "One".to_string(),
-            room_nr: 1,
-        },
-        UserRegisterDto {
-            username: "test2".to_string(),
-            first_name: "Test".to_string(),
-            last_name: "Two".to_string(),
-            room_nr: 2,
-        },
-    ];
-
-    let app_state = AppState::new().await;
-    let app = crate::get_app(app_state.clone());
-    let server = TestServer::new(app).expect("Failed to create test server");
-
-    struct TestUser {
-        user_role: UserRole,
-        bearer_token: String,
+    #[test]
+    fn test_generate_random_password() {
+        let password = generate_random_password(2137);
+        assert_eq!(password.len(), 2137);
     }
 
-    let test_users = vec![
-        // "bstrama" account from seed.sql
-        TestUser {
-            user_role: UserRole::Resident,
-            bearer_token: "Bearer eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJic3RyYW1hIiwiZmlyc3RfbmFtZSI6IkJhcnTFgm9taWVqIiwibGFzdF9uYW1lIjoiU3RyYW1hIiwicm9vbV9uciI6MSwicm9sZSI6IlJlc2lkZW50In0.NDRhw0XKORAiAeCP2uS0Z2-2wema8A_9nHNiScZkJyA".to_owned(),
-        },
-        // "kierowniczka" account from seed.sql
-        TestUser {
-            user_role: UserRole::Supervisor,
-            bearer_token: "Bearer eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MiwidXNlcm5hbWUiOiJraWVyb3duaWN6a2EiLCJmaXJzdF9uYW1lIjoiQm9ndW1pxYJhIiwibGFzdF9uYW1lIjoiS2FwdHVya2lld2ljeiIsInJvb21fbnIiOm51bGwsInJvbGUiOiJTdXBlcnZpc29yIn0.SlkzM77qydnK3raBIfwfVtisdwXy5QzgvRoUVEspsMI".to_owned(),
-        },
-    ];
+    #[tokio::test]
+    async fn test_users_register() {
+        let users_data = vec![
+            UserRegisterDto {
+                username: "test1".to_string(),
+                first_name: "Test".to_string(),
+                last_name: "One".to_string(),
+                room_nr: 1,
+            },
+            UserRegisterDto {
+                username: "test2".to_string(),
+                first_name: "Test".to_string(),
+                last_name: "Two".to_string(),
+                room_nr: 2,
+            },
+        ];
 
-    for user in test_users {
-        let res = server.post("/user/register-many")
-            .content_type("application/json")
-            .add_header(
-                HeaderName::from_str("Authorization").unwrap(),
-                HeaderValue::from_str(&user.bearer_token).unwrap(),
-            )
-            .json(&json!(users_data))
-            .await;
+        let app_state = AppState::new().await;
+        let app = crate::get_app(app_state.clone());
+        let server = TestServer::new(app).expect("Failed to create test server");
 
-        match user.user_role {
-            UserRole::Resident => res.assert_status_forbidden(),
-            UserRole::Supervisor => {
-                res.assert_status_ok();
+        struct TestUser {
+            user_role: UserRole,
+            bearer_token: String,
+        }
 
-                // cleanup
-                sqlx::query!("DELETE FROM \"user\" WHERE username = 'test1' OR username = 'test2'")
-                    .execute(&app_state.db_pool)
-                    .await
-                    .expect("Failed to delete test users");
+        let test_users = vec![
+            // "bstrama" account from seed.sql
+            TestUser {
+                user_role: UserRole::Resident,
+                bearer_token: "Bearer eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJic3RyYW1hIiwiZmlyc3RfbmFtZSI6IkJhcnTFgm9taWVqIiwibGFzdF9uYW1lIjoiU3RyYW1hIiwicm9vbV9uciI6MSwicm9sZSI6IlJlc2lkZW50In0.NDRhw0XKORAiAeCP2uS0Z2-2wema8A_9nHNiScZkJyA".to_owned(),
+            },
+            // "kierowniczka" account from seed.sql
+            TestUser {
+                user_role: UserRole::Supervisor,
+                bearer_token: "Bearer eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MiwidXNlcm5hbWUiOiJraWVyb3duaWN6a2EiLCJmaXJzdF9uYW1lIjoiQm9ndW1pxYJhIiwibGFzdF9uYW1lIjoiS2FwdHVya2lld2ljeiIsInJvb21fbnIiOm51bGwsInJvbGUiOiJTdXBlcnZpc29yIn0.SlkzM77qydnK3raBIfwfVtisdwXy5QzgvRoUVEspsMI".to_owned(),
+            },
+        ];
+
+        for user in test_users {
+            let res = server.post("/user/register-many")
+                .content_type("application/json")
+                .add_header(
+                    HeaderName::from_str("Authorization").unwrap(),
+                    HeaderValue::from_str(&user.bearer_token).unwrap(),
+                )
+                .json(&json!(users_data))
+                .await;
+
+            match user.user_role {
+                UserRole::Resident => res.assert_status_forbidden(),
+                UserRole::Supervisor => {
+                    res.assert_status_ok();
+
+                    // cleanup
+                    sqlx::query!("DELETE FROM \"user\" WHERE username = 'test1' OR username = 'test2'")
+                        .execute(&app_state.db_pool)
+                        .await
+                        .expect("Failed to delete test users");
+                }
             }
         }
     }
-}
+    
+    #[tokio::test]
+    async fn test_login() {
+        let app_state = AppState::new().await;
+        let app = crate::get_app(app_state.clone());
+        let server = TestServer::new(app).expect("Failed to create test server");
 
+        let bearer_token = login_returning_bearer_token().await;
+        
+       assert_ne!(bearer_token, "".to_string());
+    }
+}

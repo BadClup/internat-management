@@ -1,7 +1,7 @@
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum ApiResult<'a, T> {
     Ok(T),
 
