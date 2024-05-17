@@ -20,8 +20,8 @@ CREATE TABLE "user"
 CREATE TABLE "message"
 (
     id           SERIAL PRIMARY KEY,
-    sender_id    INT REFERENCES "user" (id) ON DELETE CASCADE,
-    recipient_id INT REFERENCES "user" (id) ON DELETE CASCADE,
+    sender_id    INT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+    recipient_id INT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
     created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -44,5 +44,5 @@ CREATE TABLE "exit_request_message"
     approved_at           TIMESTAMP,
 
     came_back_at          TIMESTAMP,
-    came_back_approved_by INT          REFERENCES "user" (id) ON DELETE SET NULL,
+    came_back_approved_by INT          REFERENCES "user" (id) ON DELETE SET NULL
 );
