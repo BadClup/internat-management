@@ -117,7 +117,7 @@ async fn get_messages<'a>(
     let messages = sqlx::query!(r#"
             SELECT m.*,
                 t.content as "content: Option<String>",
-                er.initial_location as "initial_location: LatLong",
+                er.initial_location as "initial_location: Option<LatLong>",
                 er.desired_location_name as "desired_location_name: Option<String>",
                 er.request_content,
                 er.approved_by,
@@ -151,7 +151,7 @@ async fn get_messages<'a>(
         // it checks if message kind is text_message:
         if let Some(content) = msg.content {
             result.push(GetChatMessageDto {
-                resident_id: msg.recipient_id,
+                recipient_id: msg.recipient_id,
                 id: msg.id,
                 sender_id: msg.sender_id,
                 created_at: msg.created_at.to_string(),
@@ -160,26 +160,26 @@ async fn get_messages<'a>(
                 }),
             });
         } else {
-            if msg.desired_location_name.is_none() {
+            if msg.desired_location_name.is_none() || msg.initial_location.is_none() {
                 // It means that it is neither text_message nor exit_request_message
                 eprintln!("Invalid internal sql message kind");
                 continue;
             }
 
             result.push(GetChatMessageDto {
-                resident_id: msg.recipient_id,
+                recipient_id: msg.recipient_id,
                 id: msg.id,
                 sender_id: msg.sender_id,
                 created_at: msg.created_at.to_string(),
                 message_kind: ChatMessageKind::ExitRequest(ChatExitRequest {
                     approved_by: msg.approved_by.map(|x| x as u32),
                     came_back_approved_by: msg.came_back_approved_by.map(|x| x as u32),
-                    initial_location: msg.initial_location,
                     request_content: msg.request_content,
                     approved_at: msg.approved_at.map(|e| e.assume_utc().unix_timestamp().into()),
                     came_back_at: msg.came_back_at.map(|e| e.assume_utc().unix_timestamp().into()),
                     // it is safe to unwrap because we checked it before
                     desired_location_name: msg.desired_location_name.unwrap(),
+                    initial_location: msg.initial_location.unwrap(),
                 }),
             });
         }
