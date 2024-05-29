@@ -6,6 +6,7 @@ pub struct ChatTextMessage {
 }
 
 #[derive(Serialize, Deserialize, sqlx::Type, Clone, Debug)]
+#[sqlx(type_name = "lat_long")]
 pub struct LatLong {
     pub latitude: f64,
     pub longitude: f64,
@@ -15,7 +16,7 @@ pub struct LatLong {
 pub struct ChatExitRequest {
     pub initial_location: LatLong,
     pub desired_location_name: String,
-    pub request_content: String,
+    pub request_content: Option<String>,
 
     pub approved_by: Option<u32>,
     pub approved_at: Option<i64>,
