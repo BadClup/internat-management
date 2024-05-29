@@ -2,8 +2,8 @@ CREATE TYPE user_role AS ENUM ('supervisor', 'resident');
 
 CREATE TYPE lat_long AS
 (
-    latitude  NUMERIC,
-    longitude NUMERIC
+    latitude  DOUBLE PRECISION,
+    longitude DOUBLE PRECISION
 );
 
 CREATE TABLE "user"
