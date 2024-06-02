@@ -31,12 +31,13 @@ pub async fn send_message_controller<'a>(
 async fn send_chat_message<'a>(mut msg: CreateChatMessageDto, db_pool: PgPool, user: UserPublicData) -> ApiResult<'a, ()> {
     let db_message = sqlx::query!(
         r#"
-            INSERT INTO "message" (sender_id, recipient_id, created_at)
-            VALUES ($1, $2, NOW())
+            INSERT INTO "message" (sender_id, recipient_id, reply_to, created_at)
+            VALUES ($1, $2, $3, NOW())
             RETURNING id, created_at
         "#,
         user.id,
         msg.resident_id,
+        msg.reply_to,
     )
         .fetch_one(&db_pool)
         .await;
@@ -153,6 +154,7 @@ async fn get_messages<'a>(
             result.push(GetChatMessageDto {
                 recipient_id: msg.recipient_id,
                 id: msg.id,
+                reply_to: msg.reply_to,
                 sender_id: msg.sender_id,
                 created_at: msg.created_at.to_string(),
                 message_kind: ChatMessageKind::Text(ChatTextMessage {
@@ -169,6 +171,7 @@ async fn get_messages<'a>(
             result.push(GetChatMessageDto {
                 recipient_id: msg.recipient_id,
                 id: msg.id,
+                reply_to: msg.reply_to,
                 sender_id: msg.sender_id,
                 created_at: msg.created_at.to_string(),
                 message_kind: ChatMessageKind::ExitRequest(ChatExitRequest {
