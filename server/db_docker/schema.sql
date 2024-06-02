@@ -22,6 +22,7 @@ CREATE TABLE "message"
     id           SERIAL PRIMARY KEY,
     sender_id    INT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
     recipient_id INT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+    reply_to     INT REFERENCES "message" (id) ON DELETE SET NULL,
     created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
