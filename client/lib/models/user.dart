@@ -109,7 +109,7 @@ class User extends Equatable {
     final response = await http
         .post(url, body: body, headers: {'Content-Type': 'application/json'});
 
-    if (response.statusCode < 400) {
+    if (response.statusCode ~/ 100 == 2) {
       return LoginResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
     } else {
