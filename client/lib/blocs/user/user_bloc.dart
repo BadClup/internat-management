@@ -40,6 +40,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
         emit(UserState(user: user, bearerToken: data.bearerToken, error: UserErrors()));
       } catch (e) {
+        print("Error on LoginUser event: $e");
         emit(UserState(user: const User(), error: UserErrors(mainError: "Nie udało nam się ciebie zalgować")));
       }
     });
