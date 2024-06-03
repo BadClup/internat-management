@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:internat_management/blocs/chat/chat_bloc.dart';
 import 'package:internat_management/screens/chat/chat.dart';
 import 'package:internat_management/screens/home/home.dart';
 import 'package:internat_management/screens/login/login.dart';
@@ -31,7 +32,19 @@ final router = GoRouter(initialLocation: "/login", routes: [
           routes: [
             GoRoute(
                 path: "/resident/chat",
-                builder: (context, state) => const ChatScreen()),
+                builder: (context, state) {
+
+                  final userState = context.watch<UserBloc>().state;
+                  final userId = userState.user.id;
+                  final bearerToken = userState.bearerToken;
+
+
+                  if(userId != null && bearerToken != null) {
+                    context.read<ChatBloc>().add(GetMessages(userId: userId, bearerToken: bearerToken));
+                  }
+
+                  return const ChatScreen();
+                }),
           ],
         ),
         StatefulShellBranch(routes: [
