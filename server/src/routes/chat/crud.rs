@@ -3,11 +3,11 @@ use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum_extra::TypedHeader;
 use headers::authorization::Bearer;
-use sqlx::PgPool;
+use sqlx::{Error, PgPool};
 use crate::AppState;
 use crate::error::ApiResult;
-use crate::routes::chat::{CreateChatMessageDto, ChatMessageKind, LatLong, GetChatMessageDto, ChatTextMessage, ChatExitRequest};
-use crate::routes::user::auth::{get_user_from_header, UserPublicData};
+use crate::routes::chat::{CreateChatMessageDto, ChatMessageKind, LatLong, GetChatMessageDto, ChatTextMessage, ChatExitRequest, ConversationListElement};
+use crate::routes::user::auth::{get_user_from_header, UserPublicData, UserRole};
 use crate::utils::kafka;
 use crate::utils::request_types::{DEFAULT_SKIP, DEFAULT_TAKE, TakeSkip};
 
@@ -128,13 +128,14 @@ async fn get_messages<'a>(
             FROM message as m
             LEFT JOIN text_message t ON t.message_id = m.id
             LEFT JOIN exit_request_message er ON er.message_id = m.id
-            WHERE sender_id = $1 AND recipient_id = $2
+            WHERE recipient_id = $2 OR (recipient_id = $1 AND $3)
             ORDER BY created_at DESC
-            LIMIT $3
-            OFFSET $4;
+            LIMIT $4
+            OFFSET $5;
         "#,
-        user.id as i32,
         recipient_user_id as i32,
+        user.id as i32,
+        matches!(user.role, UserRole::Supervisor),
         take as i32,
         skip as i32,
     )
@@ -189,6 +190,50 @@ async fn get_messages<'a>(
     }
 
     ApiResult::Ok(result)
+}
+
+pub async fn get_conversations_controller<'a>(
+    Extension(app_state): Extension<AppState>,
+    bearer_token: TypedHeader<headers::Authorization<Bearer>>,
+) -> ApiResult<'a, Json<Vec<ConversationListElement>>> {
+    let user_public_data = get_user_from_header(bearer_token);
+
+    let user = match user_public_data {
+        Ok(user_) => user_,
+        Err(err) => return err,
+    };
+    
+    if !matches!(user.role, UserRole::Supervisor) {
+        return ApiResult::Forbidden;
+    }
+    
+    get_conversations(app_state.db_pool).await
+}
+
+async fn get_conversations<'a>(db_pool: PgPool) -> ApiResult<'a, Json<Vec<ConversationListElement>>> {
+    let conversations = sqlx::query_as!(ConversationListElement, r#"
+       SELECT m."recipient_id", TO_CHAR(MAX(m."created_at"), 'YYYY-MM-DD HH24:MI:SS') AS "recent_message_date!", (
+            SELECT COALESCE(tm."content", '<exit-request>')
+            FROM "message" m2
+            LEFT JOIN "text_message" tm on tm."message_id" = m2.id
+            LEFT JOIN "exit_request_message" erm on erm."message_id" = m2.id
+            WHERE m2."recipient_id" = m."recipient_id"
+            ORDER BY m2."created_at" DESC
+            LIMIT 1
+        ) "recent_message!"
+        FROM "message" m
+        JOIN public."user" u on u.id = m.sender_id
+        WHERE u."role" = 'supervisor'
+        GROUP BY m.recipient_id
+        ORDER BY MAX(m."created_at") DESC; 
+    "#)
+        .fetch_all(&db_pool)
+        .await;
+
+    match conversations {
+        Ok(val) => ApiResult::Ok(Json(val)),
+        Err(err) => ApiResult::from(err),
+    }
 }
 
 #[cfg(test)]
