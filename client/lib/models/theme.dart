@@ -23,11 +23,11 @@ class AppTheme {
   );
   static final ThemeData darkTheme = ThemeData(
     colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.purple,
+        seedColor: Colors.deepPurple,
         surface: Colors.grey[700],
         brightness: Brightness.dark),
     appBarTheme: AppBarTheme(
-      backgroundColor: Colors.deepPurple[900],
+      backgroundColor: Colors.deepPurple[800],
     ),
     inputDecorationTheme: InputDecorationTheme(
         border: const OutlineInputBorder(
