@@ -29,8 +29,13 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
       try {
         await sendMessage(event.residentId, event.bearerToken, event.content);
-        print("message was sent");
+
+        final data = await getUserMessages(event.residentId, event.bearerToken);
+
+        emit(ChatState(messages: data, isLoading: false, error: null));
+
       } catch(e) {
+        print("Error on SendMessage: $e");
         emit(ChatState(isLoading: false, error: "$e"));
       }
     });
