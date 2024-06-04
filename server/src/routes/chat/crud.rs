@@ -202,30 +202,35 @@ pub async fn get_conversations_controller<'a>(
         Ok(user_) => user_,
         Err(err) => return err,
     };
-    
+
     if !matches!(user.role, UserRole::Supervisor) {
         return ApiResult::Forbidden;
     }
-    
+
     get_conversations(app_state.db_pool).await
 }
 
 async fn get_conversations<'a>(db_pool: PgPool) -> ApiResult<'a, Json<Vec<ConversationListElement>>> {
     let conversations = sqlx::query_as!(ConversationListElement, r#"
-       SELECT m."recipient_id", TO_CHAR(MAX(m."created_at"), 'YYYY-MM-DD HH24:MI:SS') AS "recent_message_date!", (
-            SELECT COALESCE(tm."content", '<exit-request>')
-            FROM "message" m2
-            LEFT JOIN "text_message" tm on tm."message_id" = m2.id
-            LEFT JOIN "exit_request_message" erm on erm."message_id" = m2.id
-            WHERE m2."recipient_id" = m."recipient_id"
-            ORDER BY m2."created_at" DESC
+        SELECT u.id as "recipient_id", TO_CHAR(MAX(m."created_at"), 'YYYY-MM-DD HH24:MI:SS') as "recent_message_date",
+           CASE WHEN MAX(recent_message.tm_content) IS NOT NULL THEN MAX(recent_message.tm_content)
+                WHEN MAX(recent_message.erm_id) IS NOT NULL THEN '<exit-request>'
+                END as "recent_message",
+            MAX(recent_message.sender_id) as "sender_id"
+        FROM "user" u
+        LEFT JOIN "message" m ON m."recipient_id" = u.id
+        LEFT JOIN LATERAL (
+            SELECT recent_msg.*, tm.content as tm_content, erm.id as erm_id
+            FROM "message" recent_msg
+                 LEFT JOIN "text_message" tm on tm."message_id" = recent_msg.id
+                 LEFT JOIN "exit_request_message" erm on erm."message_id" = recent_msg.id
+            WHERE recent_msg."recipient_id" = u.id
+            ORDER BY recent_msg."created_at" DESC
             LIMIT 1
-        ) "recent_message!"
-        FROM "message" m
-        JOIN public."user" u on u.id = m.sender_id
-        WHERE u."role" = 'supervisor'
-        GROUP BY m.recipient_id
-        ORDER BY MAX(m."created_at") DESC; 
+        ) AS recent_message ON TRUE
+        WHERE u."role" = 'resident'
+        GROUP BY u.id
+        ORDER BY MAX(m."created_at") DESC;
     "#)
         .fetch_all(&db_pool)
         .await;

@@ -55,6 +55,7 @@ pub struct GetChatMessageDto {
 #[derive(Serialize, Deserialize, Debug, Clone, sqlx::FromRow)]
 pub struct ConversationListElement {
     pub recipient_id: i32,
-    pub recent_message_date: String,
-    pub recent_message: String,
+    pub sender_id: Option<i32>,
+    pub recent_message_date: Option<String>,
+    pub recent_message: Option<String>,
 }
