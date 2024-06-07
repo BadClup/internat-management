@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:internat_management/blocs/chat/chat_bloc.dart';
 import 'package:internat_management/models/theme.dart';
-import 'package:internat_management/screens/chat/sendMessageBox.dart';
+import 'package:internat_management/screens/chat/send_message_box.dart';
 import 'package:internat_management/shared/navbar.dart';
 
 import '../../blocs/user/user_bloc.dart';
 
 class ChatScreen extends StatelessWidget {
-  const ChatScreen({super.key});
+  const ChatScreen({required this.residentId, super.key});
+
+  final int residentId;
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: const SharedAppBar(),
       body: Column(
@@ -20,7 +23,6 @@ class ChatScreen extends StatelessWidget {
         children: [
           BlocBuilder<ChatBloc, ChatState>(builder: (context, state) {
             final messages = state.messages;
-            print(messages);
 
             if (state.isLoading) {
               return const Expanded(
@@ -75,7 +77,7 @@ class ChatScreen extends StatelessWidget {
 
             return const SizedBox();
           }),
-          SendMessagebox()
+          SendMessagebox(residentId: residentId,)
         ],
       ),
     );

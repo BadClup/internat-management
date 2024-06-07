@@ -22,7 +22,7 @@ class LoginResponse {
           "id": int id,
           "last_name": String lastName,
           "role": String role,
-          "room_nr": int roomNumber,
+          "room_nr": int? roomNumber,
           "username": String username,
         }
       } =>
@@ -34,8 +34,7 @@ class LoginResponse {
                 id: id,
                 roomNumber: roomNumber,
                 username: convertToUtf8(username),
-                // TODO: replace this to depend on role from response
-                role: UserRole.resident)),
+                role: role.toLowerCase() == "resident" ? UserRole.resident : UserRole.supervisor)),
       _ => throw const FormatException('Failed to load Login Response.'),
     };
   }
@@ -115,7 +114,7 @@ class User extends Equatable {
     final response = await http
         .post(url, body: body, headers: {'Content-Type': 'application/json'});
 
-    if (response.statusCode >= 400) {
+    if (response.statusCode ~/ 100 != 2) {
       throw Exception('Failed to login user');
     }
     return LoginResponse.fromJson(

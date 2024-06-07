@@ -4,30 +4,28 @@ import 'package:go_router/go_router.dart';
 
 import '../blocs/user/user_bloc.dart';
 import '../models/navigation_option.dart';
-import '../models/user.dart';
 
-class ScaffoldWithBottomNavBar extends StatelessWidget {
-  const ScaffoldWithBottomNavBar({
+class ScaffoldWithBottomSupervisorNavbar extends StatelessWidget {
+  const ScaffoldWithBottomSupervisorNavbar({
     required this.navigationShell,
-    Key? key,
-  }) : super(key: key ?? const ValueKey<String>('ScaffoldWithNavBar'));
+    super.key
+  });
 
-  /// The navigation shell and container for the branch Navigators.
   final StatefulNavigationShell navigationShell;
 
-  static List<NavOption> residentRoutes = [
+  static List<NavOption> supervisorRoutes = [
     NavOption(
-        route: "/resident", label: "Start", icon: const Icon(Icons.hexagon)),
+        route: "/supervisor", label: "Dupa", icon: const Icon(Icons.hexagon)),
     NavOption(
-        route: "/resident/chat",
+        route: "/supervisor/chat",
         label: "Czat",
         icon: const Icon(Icons.chat_bubble)),
     NavOption(
-        route: "/resident/room",
+        route: "/supervisor/room",
         label: "Pokój",
         icon: const Icon(Icons.bookmark)),
     NavOption(
-        route: "/resident/announcements",
+        route: "/supervisor/announcements",
         label: "Ogłoszenia",
         icon: const Icon(Icons.announcement)),
     NavOption(
@@ -43,7 +41,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
       bottomNavigationBar: BlocBuilder<UserBloc, UserState>(
         builder: (context, state) {
           return NavigationBar(
-            destinations: residentRoutes.map((option) {
+            destinations: supervisorRoutes.map((option) {
               return NavigationDestination(
                   icon: option.icon, label: option.label);
             }).toList(),
