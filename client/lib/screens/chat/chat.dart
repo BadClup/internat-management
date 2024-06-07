@@ -4,6 +4,7 @@ import 'package:internat_management/blocs/chat/chat_bloc.dart';
 import 'package:internat_management/models/theme.dart';
 import 'package:internat_management/screens/chat/send_message_box.dart';
 import 'package:internat_management/shared/navbar.dart';
+import 'package:internat_management/utils/convert_to_utf_8.dart';
 
 import '../../blocs/user/user_bloc.dart';
 
@@ -43,6 +44,9 @@ class ChatScreen extends StatelessWidget {
               final userId = context.watch<UserBloc>().state.user.id!;
 
               final messagesList = messages.map((message) {
+
+                final content = convertToUtf8(message.content);
+
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Expanded(
@@ -57,7 +61,7 @@ class ChatScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                               color: AppColors.primaryAccent,
                               borderRadius: BorderRadius.circular(20)),
-                          child: Text(message.content),
+                          child: Text(content),
                         )
                       ],
                     ),

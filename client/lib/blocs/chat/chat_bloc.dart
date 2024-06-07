@@ -39,5 +39,19 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         emit(ChatState(isLoading: false, error: "$e"));
       }
     });
+
+    on<GetConversations>((event, emit) async {
+
+      try {
+
+        emit(const ChatState(isLoading: true, error: null));
+        final data = await getConversations(event.bearerToken);
+        emit(ChatState(isLoading: false, conversations: data));
+
+      } catch(e) {
+        print("Error on GetConversations: $e");
+        emit(const ChatState(isLoading: false, error: "Nie udało się pobrać konwersacji"));
+      }
+    });
   }
 }

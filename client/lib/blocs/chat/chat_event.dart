@@ -18,12 +18,24 @@ class GetMessages extends ChatEvent {
 }
 
 class SendMessage extends ChatEvent {
-    final int residentId;
-    final String bearerToken;
-    final String content;
+  final int residentId;
+  final String bearerToken;
+  final String content;
 
-    const SendMessage({required this.content, required this.bearerToken ,required this.residentId});
+  const SendMessage(
+      {required this.content,
+      required this.bearerToken,
+      required this.residentId});
 
-    @override
-    List<Object> get props => [content];
+  @override
+  List<Object> get props => [content];
+}
+
+class GetConversations extends ChatEvent {
+  final String bearerToken;
+
+  const GetConversations({required this.bearerToken});
+
+  @override
+  List<Object> get props => [bearerToken];
 }

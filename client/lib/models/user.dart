@@ -5,6 +5,8 @@ import 'package:equatable/equatable.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../utils/convert_to_utf_8.dart';
+
 enum UserRole { supervisor, resident }
 
 class LoginResponse {
@@ -134,7 +136,3 @@ class User extends Equatable {
       [username, id, firstName, lastName, roomNumber, role];
 }
 
-String convertToUtf8(String str) {
-  var utf8runes = str.runes.toList();
-  return utf8.decode(utf8runes);
-}
