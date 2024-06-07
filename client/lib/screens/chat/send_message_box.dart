@@ -7,8 +7,9 @@ import '../../blocs/user/user_bloc.dart';
 import '../../models/theme.dart';
 
 class SendMessagebox extends StatelessWidget {
-  SendMessagebox({super.key});
+  SendMessagebox({required this.residentId ,super.key});
 
+  final int residentId;
   final _messageTextFieldController = TextEditingController();
 
   @override
@@ -38,7 +39,7 @@ class SendMessagebox extends StatelessWidget {
                         context.read<ChatBloc>().add(SendMessage(
                             content: content,
                             bearerToken: state.bearerToken!,
-                            residentId: state.user.id!));
+                            residentId: residentId));
                       },
                       icon: const Icon(Icons.send)),
                 ),

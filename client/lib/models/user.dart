@@ -22,7 +22,7 @@ class LoginResponse {
           "id": int id,
           "last_name": String lastName,
           "role": String role,
-          "room_nr": int roomNumber,
+          "room_nr": int? roomNumber,
           "username": String username,
         }
       } =>
@@ -31,9 +31,10 @@ class LoginResponse {
             user: User(
                 firstName: convertToUtf8(firstName),
                 lastName: convertToUtf8(lastName),
+                id: id,
                 roomNumber: roomNumber,
                 username: convertToUtf8(username),
-                role: UserRole.resident)),
+                role: role.toLowerCase() == "resident" ? UserRole.resident : UserRole.supervisor)),
       _ => throw const FormatException('Failed to load Login Response.'),
     };
   }
@@ -52,10 +53,12 @@ class User extends Equatable {
   final String? lastName;
   final int? roomNumber;
   final UserRole? role;
+  final int? id;
 
   Map<String, dynamic> toJson() {
     return {
       'username': username,
+      'id': id,
       'first_name': firstName,
       'last_name': lastName,
       'room_nr': roomNumber,
@@ -82,6 +85,7 @@ class User extends Equatable {
       Map<String, dynamic> userMap = jsonDecode(userJson);
       user = User(
         username: userMap['username'],
+        id: userMap['id'],
         firstName: userMap['first_name'],
         lastName: userMap['last_name'],
         roomNumber: userMap['room_nr'],
@@ -101,7 +105,8 @@ class User extends Equatable {
     await storage.delete(key: "user");
   }
 
-  static Future<LoginResponse> loginUser(String username, String password) async {
+  static Future<LoginResponse> loginUser(
+      String username, String password) async {
     final apiPrefix = dotenv.env["API_URL"];
     final url = Uri.parse('$apiPrefix/user/login');
     final body = jsonEncode({'username': username, 'password': password});
@@ -109,23 +114,24 @@ class User extends Equatable {
     final response = await http
         .post(url, body: body, headers: {'Content-Type': 'application/json'});
 
-    if (response.statusCode ~/ 100 == 2) {
-      return LoginResponse.fromJson(
-          jsonDecode(response.body) as Map<String, dynamic>);
-    } else {
+    if (response.statusCode ~/ 100 != 2) {
       throw Exception('Failed to login user');
     }
+    return LoginResponse.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   const User(
       {this.username,
+      this.id,
       this.firstName,
       this.lastName,
       this.roomNumber,
       this.role});
 
   @override
-  List<Object?> get props => [username, firstName, lastName, roomNumber, role];
+  List<Object?> get props =>
+      [username, id, firstName, lastName, roomNumber, role];
 }
 
 String convertToUtf8(String str) {
