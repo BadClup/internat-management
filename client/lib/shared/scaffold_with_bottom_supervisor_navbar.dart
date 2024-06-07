@@ -29,7 +29,7 @@ class ScaffoldWithBottomSupervisorNavbar extends StatelessWidget {
         label: "Ogłoszenia",
         icon: const Icon(Icons.announcement)),
     NavOption(
-        route: "/settings",
+        route: "/supervisor/settings",
         label: "Ustawienia",
         icon: const Icon(Icons.settings)),
   ];

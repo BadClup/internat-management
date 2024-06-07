@@ -3,28 +3,26 @@ import 'package:equatable/equatable.dart';
 import 'package:internat_management/models/chat.dart';
 
 part "chat_event.dart";
+
 part "chat_state.dart";
 
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ChatBloc() : super(const ChatState()) {
-
     on<GetMessages>((event, emit) async {
+      emit(const ChatState(isLoading: true, error: null));
 
-        emit(const ChatState(isLoading: true, error: null));
+      try {
+        final data = await getUserMessages(event.userId, event.bearerToken);
 
-        try {
-          final data = await getUserMessages(event.userId, event.bearerToken);
-
-          emit(ChatState(messages: data, isLoading: false, error: null));
-
-        } catch(e) {
-          print("error on getMessages: $e");
-          emit(const ChatState(messages: null, isLoading: false, error: "Could not get messages"));
-        }
+        emit(ChatState(messages: data, isLoading: false, error: null));
+      } catch (e) {
+        print("error on getMessages: $e");
+        emit(const ChatState(
+            messages: null, isLoading: false, error: "Could not get messages"));
+      }
     });
 
     on<SendMessage>((event, emit) async {
-
       emit(const ChatState(isLoading: true));
 
       try {
@@ -33,24 +31,21 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         final data = await getUserMessages(event.residentId, event.bearerToken);
 
         emit(ChatState(messages: data, isLoading: false, error: null));
-
-      } catch(e) {
+      } catch (e) {
         print("Error on SendMessage: $e");
         emit(ChatState(isLoading: false, error: "$e"));
       }
     });
 
     on<GetConversations>((event, emit) async {
-
       try {
-
         emit(const ChatState(isLoading: true, error: null));
         final data = await getConversations(event.bearerToken);
         emit(ChatState(isLoading: false, conversations: data));
-
-      } catch(e) {
+      } catch (e) {
         print("Error on GetConversations: $e");
-        emit(const ChatState(isLoading: false, error: "Nie udało się pobrać konwersacji"));
+        emit(const ChatState(
+            isLoading: false, error: "Nie udało się pobrać konwersacji"));
       }
     });
   }

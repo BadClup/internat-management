@@ -61,7 +61,7 @@ final router = GoRouter(initialLocation: "/login", routes: [
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
-              path: "/settings",
+              path: "/resident/settings",
               builder: (context, state) => const ProfileSettingsScreen()),
         ]),
       ]),
@@ -86,7 +86,13 @@ final router = GoRouter(initialLocation: "/login", routes: [
           routes: [
             GoRoute(
                 path: "/supervisor/chat",
-                builder: (context, state) => const ChatGroups()),
+                builder: (context, state) {
+
+                  final bearerToken = context.watch<UserBloc>().state.bearerToken;
+                  context.read<ChatBloc>().add(GetConversations(bearerToken: bearerToken!));
+
+                  return const ChatGroups();
+                }),
             GoRoute(
                 path: "/supervisor/chat/:userId",
                 builder: (context, state) {
@@ -117,7 +123,7 @@ final router = GoRouter(initialLocation: "/login", routes: [
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
-              path: "/settings",
+              path: "/supervisor/settings",
               builder: (context, state) => const ProfileSettingsScreen()),
         ]),
       ])

@@ -31,7 +31,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
         label: "Ogłoszenia",
         icon: const Icon(Icons.announcement)),
     NavOption(
-        route: "/settings",
+        route: "/resident/settings",
         label: "Ustawienia",
         icon: const Icon(Icons.settings)),
   ];
