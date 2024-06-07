@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../blocs/user/user_bloc.dart';
 import '../models/navigation_option.dart';
-import '../models/user.dart';
 
 class ScaffoldWithBottomNavBar extends StatelessWidget {
   const ScaffoldWithBottomNavBar({
