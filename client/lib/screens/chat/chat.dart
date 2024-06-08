@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:internat_management/blocs/chat/chat_bloc.dart';
 import 'package:internat_management/models/theme.dart';
 import 'package:internat_management/screens/chat/send_message_box.dart';
 import 'package:internat_management/shared/navbar.dart';
 import 'package:internat_management/utils/convert_to_utf_8.dart';
+import 'package:intl/intl.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../blocs/user/user_bloc.dart';
 
@@ -15,7 +18,6 @@ class ChatScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: const SharedAppBar(),
       body: Column(
@@ -44,8 +46,11 @@ class ChatScreen extends StatelessWidget {
               final userId = context.watch<UserBloc>().state.user.id!;
 
               final messagesList = messages.map((message) {
-
                 final content = convertToUtf8(message.content);
+
+                DateTime createdAt = DateTime.parse(message.createdAt);
+                final format = DateFormat.MMMd('pl');
+                final formattedDate = format.format(createdAt);
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
@@ -55,13 +60,18 @@ class ChatScreen extends StatelessWidget {
                           ? MainAxisAlignment.end
                           : MainAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 6, horizontal: 16),
-                          decoration: BoxDecoration(
-                              color: AppColors.primaryAccent,
-                              borderRadius: BorderRadius.circular(20)),
-                          child: Text(content),
+                        Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 6, horizontal: 16),
+                              decoration: BoxDecoration(
+                                  color: AppColors.primaryAccent,
+                                  borderRadius: BorderRadius.circular(20)),
+                              child: Text(content),
+                            ),
+                            Text(formattedDate),
+                          ],
                         )
                       ],
                     ),
@@ -81,7 +91,9 @@ class ChatScreen extends StatelessWidget {
 
             return const SizedBox();
           }),
-          SendMessagebox(residentId: residentId,)
+          SendMessagebox(
+            residentId: residentId,
+          )
         ],
       ),
     );

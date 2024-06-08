@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
 import 'package:internat_management/blocs/chat/chat_bloc.dart';
 import 'package:internat_management/screens/chat/chat.dart';
@@ -8,6 +9,7 @@ import 'package:internat_management/screens/login/login.dart';
 import 'package:internat_management/screens/settings/settings.dart';
 import 'package:internat_management/shared/scaffold_with_bottom_navbar.dart';
 import 'package:internat_management/shared/scaffold_with_bottom_supervisor_navbar.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'blocs/user/user_bloc.dart';
 
