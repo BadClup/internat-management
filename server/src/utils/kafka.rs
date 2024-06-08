@@ -14,7 +14,6 @@ pub fn get_chat_consumer(resident_id: u32) -> KafkaResult<StreamConsumer> {
         .set("bootstrap.servers", &crate::ENV.KAFKA_SERVER_URL)
         .set("enable.partition.eof", "false")
         .set("allow.auto.create.topics", "true")
-        .set("auto.create.topics.enable", "true")
         .set("session.timeout.ms", "6000")
         .set("enable.auto.commit", "true") // delete messages every 5 second
         .create()?;
