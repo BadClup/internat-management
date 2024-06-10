@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -18,83 +20,94 @@ class ChatScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const SharedAppBar(),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          BlocBuilder<ChatBloc, ChatState>(builder: (context, state) {
-            final messages = state.messages;
+    return BlocListener<ChatBloc, ChatState>(
+      listener: (context, state) {
 
-            if (state.isLoading) {
-              return const Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                  ],
-                ),
-              );
-            }
+        final channel = state.wsChannel;
 
-            if (state.error != null) {
-              return const Text("Nie udalo sie nam pobrać wiadomości z chatu");
-            }
+        if(channel != null) {
+          context.read<ChatBloc>().add(ListenWebsocket(channel));
+        }
+      },
+      child: Scaffold(
+        appBar: const SharedAppBar(),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            BlocBuilder<ChatBloc, ChatState>(builder: (context, state) {
+              final messages = state.messages;
 
-            if (messages != null) {
-              final userId = context.watch<UserBloc>().state.user.id!;
+              if (state.isLoading) {
+                return const Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                    ],
+                  ),
+                );
+              }
 
-              final messagesList = messages.map((message) {
-                final content = convertToUtf8(message.content);
+              if (state.error != null) {
+                return const Text(
+                    "Nie udalo sie nam pobrać wiadomości z chatu");
+              }
 
-                DateTime createdAt = DateTime.parse(message.createdAt);
-                final format = DateFormat.MMMd('pl');
-                final formattedDate = format.format(createdAt);
+              if (messages != null) {
+                final userId = context.watch<UserBloc>().state.user.id!;
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Expanded(
+                final messagesList = messages.map((message) {
+                  final content = convertToUtf8(message.content);
+
+                  //DateTime createdAt = DateTime.parse(message.createdAt);
+                  //final format = DateFormat.MMMd('pl');
+                  // final formattedDate = format.format(createdAt);
+                  const formattedDate = "chub";
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    width: double.maxFinite,
                     child: Row(
                       mainAxisAlignment: userId == message.senderId
                           ? MainAxisAlignment.end
                           : MainAxisAlignment.start,
                       children: [
-                        Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 6, horizontal: 16),
-                              decoration: BoxDecoration(
-                                  color: AppColors.primaryAccent,
-                                  borderRadius: BorderRadius.circular(20)),
-                              child: Text(content),
-                            ),
-                            Text(formattedDate),
-                          ],
-                        )
+                          Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 6, horizontal: 16),
+                                decoration: BoxDecoration(
+                                    color: AppColors.primaryAccent,
+                                    borderRadius: BorderRadius.circular(20)),
+                                child: Text(content),
+                              ),
+                              Text(formattedDate),
+                            ],
+                          ),
                       ],
+                    ),
+                  );
+                }).toList();
+
+                return Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    child: ListView(
+                      children: List.from(messagesList.reversed),
                     ),
                   ),
                 );
-              }).toList();
+              }
 
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: ListView(
-                    children: List.from(messagesList.reversed),
-                  ),
-                ),
-              );
-            }
-
-            return const SizedBox();
-          }),
-          SendMessagebox(
-            residentId: residentId,
-          )
-        ],
+              return const SizedBox();
+            }),
+            SendMessagebox(
+              residentId: residentId,
+            )
+          ],
+        ),
       ),
     );
   }

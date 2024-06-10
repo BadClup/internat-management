@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:internat_management/models/chat.dart';
+import 'package:web_socket_channel/io.dart';
 
 part "chat_event.dart";
 
@@ -13,7 +16,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
       try {
         final data = await getUserMessages(event.userId, event.bearerToken);
-
+        print("Got messages!");
         emit(ChatState(messages: data, isLoading: false, error: null));
       } catch (e) {
         print("error on getMessages: $e");
@@ -47,6 +50,36 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         emit(const ChatState(
             isLoading: false, error: "Nie udało się pobrać konwersacji"));
       }
+    });
+
+    on<ConnectToWebsocket>((event, emit) async {
+      try {
+        final channel =
+            await connectToWebsocket(event.residentId, event.bearerToken);
+
+        print("Connected to websocket");
+        emit(ChatState(wsChannel: channel));
+      } catch (e) {
+        print("Error on ConnectToWebsocket: $e");
+      }
+    });
+
+    on<ListenWebsocket>((event, emit) async {
+      print("start listening websocket");
+
+      final channel = event.channel;
+
+      channel.stream.listen(
+            (data) {
+          print("New message: $data");
+        },
+        onError: (error) {
+          print("Error in WebSocket: $error");
+        },
+        onDone: () {
+          print("WebSocket stream closed");
+        },
+      );
     });
   }
 }
