@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../blocs/user/user_bloc.dart';
 import '../models/navigation_option.dart';
+import '../models/user.dart';
 
 class ScaffoldWithBottomNavBar extends StatelessWidget {
   const ScaffoldWithBottomNavBar({
@@ -30,7 +31,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
         label: "Ogłoszenia",
         icon: const Icon(Icons.announcement)),
     NavOption(
-        route: "/resident/settings",
+        route: "/settings",
         label: "Ustawienia",
         icon: const Icon(Icons.settings)),
   ];
