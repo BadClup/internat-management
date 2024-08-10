@@ -2,8 +2,8 @@ CREATE TYPE user_role AS ENUM ('supervisor', 'resident');
 
 CREATE TYPE coordinates AS
 (
-    latitude  NUMERIC,
-    longitude NUMERIC
+    latitude  DOUBLE PRECISION,
+    longitude DOUBLE PRECISION
 );
 
 CREATE TABLE "user"
@@ -20,8 +20,9 @@ CREATE TABLE "user"
 CREATE TABLE "message"
 (
     id           SERIAL PRIMARY KEY,
-    sender_id    INT REFERENCES "user" (id) ON DELETE CASCADE,
-    recipient_id INT REFERENCES "user" (id) ON DELETE CASCADE,
+    sender_id    INT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+    recipient_id INT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+    reply_to     INT REFERENCES "message" (id) ON DELETE SET NULL,
     created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
