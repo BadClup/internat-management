@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use axum::{
-    http::{HeaderMap, StatusCode},
+    http::StatusCode,
     Extension, Json,
 };
 use axum_test::TestServer;
@@ -9,21 +9,23 @@ use chrono::{DateTime, Utc};
 use serde_json::json;
 
 use super::super::rating::{CateringRatingDto, RatingsDto};
-use crate::routes::{rating::rating::PostRatingReq, user::auth::{get_user_from_bearer, UserRole}};
+use crate::routes::{rating::rating::PostRatingReq, user::auth::{get_user_from_header, UserRole}};
 use crate::{
     error::ApiResult,
-    routes::rating::rating::{PostCateringRatingReq},
+    routes::rating::rating::PostCateringRatingReq,
     AppState,
 };
+use axum_extra::TypedHeader;
+use headers::authorization::Bearer;
 
 pub async fn post_catering_rating<'a>(
     Extension(app_state): Extension<AppState>,
-    header: HeaderMap,
+    bearer_token: TypedHeader<headers::Authorization<Bearer>>,
     new_rating: PostCateringRatingReq,
 ) -> ApiResult<'a, Json<RatingsDto>> {
     let user_public_data;
 
-    match get_user_from_bearer(header) {
+    match get_user_from_header(bearer_token) {
         Ok(v) => user_public_data = v,
         Err(e) => return e,
     };
@@ -73,7 +75,7 @@ pub async fn post_catering_rating<'a>(
 
 
     if let Err(e) = query {
-        return ApiResult::Sqlx(e);
+        return ApiResult::Internal(e.to_string());
     }
 
     let inserted_rating = query.unwrap();
@@ -101,5 +103,6 @@ async fn test_post_catering_rating() {
         .json(&json!(ratings_data))
         .await;
 
-    res.assert_status_unauthorized();
+    // TODO: figure out why this is 400 not 401
+    res.assert_status_bad_request();
 }

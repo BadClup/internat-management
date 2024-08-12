@@ -5,7 +5,9 @@ use axum::{
     http::{HeaderMap, StatusCode},
     Extension, Json,
 };
+use axum_extra::TypedHeader;
 use chrono::{DateTime, Utc};
+use headers::authorization::Bearer;
 use serde::{Deserialize, Serialize};
 
 #[derive(sqlx::Type, Debug, Deserialize, Serialize, Clone)]
@@ -86,13 +88,13 @@ pub struct PostRoomRatingReq {
 pub async fn post_rating<'a>(
     Path(rating_type): Path<RatingType>,
     app_state: Extension<AppState>,
-    header: HeaderMap,
+    bearer_token: TypedHeader<headers::Authorization<Bearer>>,
     Json(new_ratings): Json<PostRatingReq>,
 ) -> ApiResult<'a, Json<RatingsDto>> {
     match new_ratings {
         PostRatingReq::Catering(catering_rating) => {
             if let RatingType::Catering = rating_type {
-                return catering::post::post_catering_rating(app_state, header, catering_rating)
+                return catering::post::post_catering_rating(app_state, bearer_token, catering_rating)
                     .await;
             } else {
                 return ApiResult::Custom(

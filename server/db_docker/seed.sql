@@ -1,6 +1,7 @@
 INSERT INTO "user" (username, password, first_name, last_name, room_number, role)
-VALUES ('kierowniczka', 'fa585d89c851dd338a70dcf535aa2a92fee7836dd6aff1226583e88e0996293f16bc009c652826e0fc5c706695a03cddce372f139eff4d13959da6f1f5d3eabe', 'Bogumiła', 'Kapturkiewicz', NULL, 'supervisor'),
-('bstrama', 'fa585d89c851dd338a70dcf535aa2a92fee7836dd6aff1226583e88e0996293f16bc009c652826e0fc5c706695a03cddce372f139eff4d13959da6f1f5d3eabe', 'Bartłomiej', 'Strama', 1, 'resident'),
+VALUES ('bstrama', 'fa585d89c851dd338a70dcf535aa2a92fee7836dd6aff1226583e88e0996293f16bc009c652826e0fc5c706695a03cddce372f139eff4d13959da6f1f5d3eabe', 'Bartłomiej', 'Strama', 1, 'resident'),
+('kierowniczka', 'fa585d89c851dd338a70dcf535aa2a92fee7836dd6aff1226583e88e0996293f16bc009c652826e0fc5c706695a03cddce372f139eff4d13959da6f1f5d3eabe', 'Bogumiła', 'Kapturkiewicz', NULL, 'supervisor'),
+
 -- password: 1234
 ('johnny', 'd404559f602eab6fd602ac7680dacbfaadd13630335e951f097af3900e9de176b6db28512f2e000b9d04fba5133e8b1c6e8df59db3a8ab9d60be4b97cc9e81db', 'John', 'Cena', 206, 'resident');
 

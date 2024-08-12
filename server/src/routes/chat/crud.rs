@@ -179,8 +179,8 @@ async fn get_messages<'a>(
                     approved_by: msg.approved_by.map(|x| x as u32),
                     came_back_approved_by: msg.came_back_approved_by.map(|x| x as u32),
                     request_content: msg.request_content,
-                    approved_at: msg.approved_at.map(|e| e.assume_utc().unix_timestamp().into()),
-                    came_back_at: msg.came_back_at.map(|e| e.assume_utc().unix_timestamp().into()),
+                    approved_at: msg.approved_at.map(|e| e.and_utc().timestamp().into()),
+                    came_back_at: msg.came_back_at.map(|e| e.and_utc().timestamp().into()),
                     // it is safe to unwrap because we checked it before
                     desired_location_name: msg.desired_location_name.unwrap(),
                     initial_location: msg.initial_location.unwrap(),

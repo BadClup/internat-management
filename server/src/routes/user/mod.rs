@@ -2,7 +2,6 @@ use axum::Router;
 use axum::routing::{get, post};
 
 pub mod auth;
-mod change_location;
 mod info;
 
 pub fn get_router() -> Router {

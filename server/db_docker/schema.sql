@@ -44,8 +44,8 @@ CREATE TABLE "exit_request_message"
     approved_by           INT          REFERENCES "user" (id) ON DELETE SET NULL,
     approved_at           TIMESTAMP,
 
-    comeback_at          TIMESTAMP,
-    comeback_approved_by INT          REFERENCES "user" (id) ON DELETE SET NULL
+    came_back_at          TIMESTAMP,
+    came_back_approved_by INT          REFERENCES "user" (id) ON DELETE SET NULL
 );
 
 -- catering

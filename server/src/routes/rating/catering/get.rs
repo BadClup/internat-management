@@ -37,7 +37,7 @@ pub async fn get_catering_rating<'a>(
     };
 
     if let Err(e) = ratings {
-        return ApiResult::Sqlx(e);
+        return ApiResult::Internal(e.to_string());
     };
 
     let processed_ratings = ratings.unwrap();
