@@ -1,15 +1,11 @@
-use std::str::FromStr;
-
 use axum::{
     http::StatusCode,
     Extension, Json,
 };
-use axum_test::TestServer;
 use chrono::{DateTime, Utc};
-use serde_json::json;
 
 use super::super::rating::{CateringRatingDto, RatingsDto};
-use crate::routes::{rating::rating::PostRatingReq, user::auth::{get_user_from_header, UserRole}};
+use crate::routes::user::auth::{get_user_from_header, UserRole};
 use crate::{
     error::ApiResult,
     routes::rating::rating::PostCateringRatingReq,
