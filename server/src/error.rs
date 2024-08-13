@@ -57,7 +57,10 @@ impl<T> ApiResult<'_, T> {
     }
 }
 
-impl<T> IntoResponse for ApiResult<'_, T> where T: IntoResponse {
+impl<T> IntoResponse for ApiResult<'_, T>
+where
+    T: IntoResponse,
+{
     fn into_response(self) -> Response {
         if let ApiResult::Ok(v) = self {
             return v.into_response();

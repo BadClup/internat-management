@@ -1,15 +1,17 @@
-use axum::{Extension, Json};
-use axum::extract::{Path, Query};
-use axum::http::StatusCode;
-use axum_extra::TypedHeader;
-use headers::authorization::Bearer;
-use sqlx::{Error, PgPool};
-use crate::AppState;
 use crate::error::ApiResult;
-use crate::routes::chat::{CreateChatMessageDto, ChatMessageKind, LatLong, GetChatMessageDto, ChatTextMessage, ChatExitRequest, ConversationListElement};
+use crate::routes::chat::{
+    ChatExitRequest, ChatMessageKind, ChatTextMessage, ConversationListElement,
+    CreateChatMessageDto, GetChatMessageDto, LatLong,
+};
 use crate::routes::user::auth::{get_user_from_header, UserPublicData, UserRole};
 use crate::utils::kafka;
-use crate::utils::request_types::{DEFAULT_SKIP, DEFAULT_TAKE, TakeSkip};
+use crate::utils::request_types::{TakeSkip, DEFAULT_SKIP, DEFAULT_TAKE};
+use crate::AppState;
+use axum::extract::{Path, Query};
+use axum::{Extension, Json};
+use axum_extra::TypedHeader;
+use headers::authorization::Bearer;
+use sqlx::PgPool;
 
 pub async fn send_message_controller<'a>(
     Extension(app_state): Extension<AppState>,
@@ -28,7 +30,11 @@ pub async fn send_message_controller<'a>(
     result.map(|_| "Message sent")
 }
 
-async fn send_chat_message<'a>(mut msg: CreateChatMessageDto, db_pool: PgPool, user: UserPublicData) -> ApiResult<'a, ()> {
+async fn send_chat_message<'a>(
+    mut msg: CreateChatMessageDto,
+    db_pool: PgPool,
+    user: UserPublicData,
+) -> ApiResult<'a, ()> {
     let db_message = sqlx::query!(
         r#"
             INSERT INTO "message" (sender_id, recipient_id, reply_to, created_at)
@@ -39,8 +45,8 @@ async fn send_chat_message<'a>(mut msg: CreateChatMessageDto, db_pool: PgPool, u
         msg.resident_id,
         msg.reply_to,
     )
-        .fetch_one(&db_pool)
-        .await;
+    .fetch_one(&db_pool)
+    .await;
 
     let db_message = match db_message {
         Ok(msg) => msg,
@@ -84,7 +90,7 @@ async fn send_chat_message<'a>(mut msg: CreateChatMessageDto, db_pool: PgPool, u
 
     match kafka::send_chat_message(msg, db_message.id as u32).await {
         Ok(_) => ApiResult::Ok(()),
-        Err(_) => ApiResult::Internal("Internal kafka error".to_string())
+        Err(_) => ApiResult::Internal("Internal kafka error".to_string()),
     }
 }
 
@@ -115,7 +121,8 @@ async fn get_messages<'a>(
     skip: u32,
     recipient_user_id: u32,
 ) -> ApiResult<'a, Vec<GetChatMessageDto>> {
-    let messages = sqlx::query!(r#"
+    let messages = sqlx::query!(
+        r#"
             SELECT m.*,
                 t.content as "content: Option<String>",
                 er.initial_location as "initial_location: Option<LatLong>",
@@ -139,8 +146,8 @@ async fn get_messages<'a>(
         take as i32,
         skip as i32,
     )
-        .fetch_all(&db_pool)
-        .await;
+    .fetch_all(&db_pool)
+    .await;
 
     if let Err(err) = messages {
         return ApiResult::from(err);
@@ -158,9 +165,7 @@ async fn get_messages<'a>(
                 reply_to: msg.reply_to,
                 sender_id: msg.sender_id,
                 created_at: msg.created_at.to_string(),
-                message_kind: ChatMessageKind::Text(ChatTextMessage {
-                    content,
-                }),
+                message_kind: ChatMessageKind::Text(ChatTextMessage { content }),
             });
         } else {
             if msg.desired_location_name.is_none() || msg.initial_location.is_none() {
@@ -210,7 +215,9 @@ pub async fn get_conversations_controller<'a>(
     get_conversations(app_state.db_pool).await
 }
 
-async fn get_conversations<'a>(db_pool: PgPool) -> ApiResult<'a, Json<Vec<ConversationListElement>>> {
+async fn get_conversations<'a>(
+    db_pool: PgPool,
+) -> ApiResult<'a, Json<Vec<ConversationListElement>>> {
     let conversations = sqlx::query_as!(ConversationListElement, r#"
         SELECT u.id as "recipient_id", TO_CHAR(MAX(m."created_at"), 'YYYY-MM-DD HH24:MI:SS') as "recent_message_date",
            CASE WHEN MAX(recent_message.tm_content) IS NOT NULL THEN MAX(recent_message.tm_content)
@@ -243,11 +250,11 @@ async fn get_conversations<'a>(db_pool: PgPool) -> ApiResult<'a, Json<Vec<Conver
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use super::*;
     use axum::http::{HeaderName, HeaderValue};
     use axum_test::TestServer;
     use serde_json::json;
-    use super::*;
+    use std::str::FromStr;
 
     #[tokio::test]
     async fn test_send_message() {

@@ -1,18 +1,23 @@
-
 use std::str::FromStr;
 
 use axum::{Extension, Json};
 use axum_test::TestServer;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use super::super::rating::{CateringRatingDto, GetRatingReq, RatingsDto};
-use crate::{error::ApiResult, AppState};
+use crate::{error::ApiResult, routes::ratings::types::CateringRatingDto, AppState};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetRatingReq {
+    pub room_id: Option<u32>,
+    pub date: Option<DateTime<Utc>>,
+}
 
 pub async fn get_catering_rating<'a>(
     Extension(app_state): Extension<AppState>,
-    rating_options: GetRatingReq,
-) -> ApiResult<'a, Json<RatingsDto>> {
+    Json(rating_options): Json<GetRatingReq>,
+) -> ApiResult<'a, Json<Vec<CateringRatingDto>>> {
     let ratings: Result<Vec<CateringRatingDto>, sqlx::Error>= match rating_options.date {
         Some(option)=> sqlx::query_as!(CateringRatingDto, r#"
             SELECT c.id, stars, created_at as "created_at: DateTime<Utc>", served_at as "served_at: DateTime<Utc>", dish_name FROM "catering_rating" cr
@@ -42,7 +47,7 @@ pub async fn get_catering_rating<'a>(
 
     let processed_ratings = ratings.unwrap();
 
-    return ApiResult::Ok(Json(RatingsDto::Catering(processed_ratings)));
+    return ApiResult::Ok(Json(processed_ratings));
 }
 
 #[tokio::test]
@@ -85,16 +90,14 @@ async fn test_get_catering_ratings() {
     ];
 
     let res = server
-        .get("/rating/catering")
+        .get("/ratings/meals")
         .content_type("application/json")
         .json(&json!({}))
         .await;
 
-    let json_res = res.json::<RatingsDto>();
+    let json_res = res.json::<Vec<CateringRatingDto>>();
 
-    if let RatingsDto::Catering(ratings)= json_res {
-        assert_eq!(json!(ratings[0..3]), json!(expected_output));
-    }
+    assert_eq!(json!(json_res[0..3]), json!(expected_output));
 
     res.assert_status_ok();
 }

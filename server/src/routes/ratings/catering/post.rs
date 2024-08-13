@@ -1,28 +1,29 @@
 use std::str::FromStr;
 
-use axum::{
-    http::StatusCode,
-    Extension, Json,
-};
+use axum::{http::StatusCode, Extension, Json};
 use axum_test::TestServer;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use super::super::rating::{CateringRatingDto, RatingsDto};
-use crate::routes::{rating::rating::PostRatingReq, user::auth::{get_user_from_header, UserRole}};
-use crate::{
-    error::ApiResult,
-    routes::rating::rating::PostCateringRatingReq,
-    AppState,
-};
+use crate::routes::ratings::types::CateringRatingDto;
+use crate::routes::user::auth::{get_user_from_header, UserRole};
+use crate::{error::ApiResult, AppState};
 use axum_extra::TypedHeader;
 use headers::authorization::Bearer;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PostCateringRatingReq {
+    pub stars: i32,
+    #[serde(with = "DateTime")]
+    pub served_at: DateTime<Utc>,
+}
 
 pub async fn post_catering_rating<'a>(
     Extension(app_state): Extension<AppState>,
     bearer_token: TypedHeader<headers::Authorization<Bearer>>,
-    new_rating: PostCateringRatingReq,
-) -> ApiResult<'a, Json<RatingsDto>> {
+    Json(new_rating): Json<PostCateringRatingReq>,
+) -> ApiResult<'a, Json<Vec<CateringRatingDto>>> {
     let user_public_data;
 
     match get_user_from_header(bearer_token) {
@@ -73,7 +74,6 @@ pub async fn post_catering_rating<'a>(
     .fetch_one(&app_state.db_pool)
     .await;
 
-
     if let Err(e) = query {
         return ApiResult::Internal(e.to_string());
     }
@@ -82,15 +82,15 @@ pub async fn post_catering_rating<'a>(
     let mut result = vec![];
     result.push(inserted_rating);
 
-    return ApiResult::Ok(Json(RatingsDto::Catering(result)));
+    return ApiResult::Ok(Json(result));
 }
 
 #[tokio::test]
 async fn test_post_catering_rating() {
-    let ratings_data = PostRatingReq::Catering(PostCateringRatingReq {
+    let ratings_data = PostCateringRatingReq {
         stars: 4,
         served_at: Result::expect(DateTime::from_str("2020-01-01T00:00:00Z"), "wrong time"),
-    });
+    };
 
     let app_state = AppState::new().await;
     let app = crate::get_app(app_state.clone());
@@ -98,7 +98,7 @@ async fn test_post_catering_rating() {
 
     // TODO: add authorization
     let res = server
-        .post("/rating/catering")
+        .post("/ratings/meals")
         .content_type("application/json")
         .json(&json!(ratings_data))
         .await;

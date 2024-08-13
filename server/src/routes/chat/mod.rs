@@ -1,12 +1,12 @@
-use axum::Router;
 use axum::routing::{get, post};
+use axum::Router;
 
-mod ws;
 mod crud;
 mod types;
+mod ws;
 
-pub use ws::*;
 pub use types::*;
+pub use ws::*;
 
 pub fn get_router() -> Router {
     Router::new()
