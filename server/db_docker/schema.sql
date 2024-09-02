@@ -98,27 +98,32 @@ CREATE TYPE meal_subrating_type AS (
     description TEXT
 ); 
 
-CREATE FUNCTION get_meal_subratings(meal_rating_id integer) RETURNS meal_subrating_type[] AS $$
-    SELECT ARRAY(
+CREATE TYPE meal_rating_part_type AS ( 
+    question_id INT, 
+    points INT, 
+    description TEXT
+); 
+
+CREATE FUNCTION get_meal_subratings(meal_rating_id integer) RETURNS json AS $$
+    WITH subratings as (
         SELECT
-            ROW (
             mrp.id,
             mrq.question,
             mrp.points,
             mrp.description
-            )::meal_subrating_type
         FROM "meal_rating_part" mrp
         JOIN "meal_rating_question" mrq
         ON mrq.id = mrp.rating_question_id
         WHERE mrp.meal_rating_id = $1
     )
+    SELECT json_agg(subratings) FROM subratings;
 $$ LANGUAGE SQL;
 
 CREATE TYPE meal_rating_type AS ( 
     id INT, 
     created_at VARCHAR(255), 
     points INT, 
-    subratings meal_subrating_type[]
+    subratings json
 ); 
 
 CREATE FUNCTION get_meal_ratings(meal_id integer) RETURNS json AS $$
