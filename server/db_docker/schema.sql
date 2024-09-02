@@ -98,6 +98,12 @@ CREATE TYPE meal_subrating_type AS (
     description TEXT
 ); 
 
+CREATE TYPE meal_rating_part_type AS ( 
+    question_id INT, 
+    points INT, 
+    description TEXT
+); 
+
 CREATE FUNCTION get_meal_subratings(meal_rating_id integer) RETURNS meal_subrating_type[] AS $$
     SELECT ARRAY(
         SELECT

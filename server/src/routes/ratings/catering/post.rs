@@ -1,29 +1,51 @@
-/*use std::str::FromStr;
+use std::str::FromStr;
 
+use axum::http::{HeaderName, HeaderValue};
 use axum::{http::StatusCode, Extension, Json};
 use axum_test::TestServer;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use sqlx::postgres::PgTypeInfo;
+use sqlx::prelude::Type;
 
-use crate::routes::ratings::types::CateringRatingDto;
+use crate::routes::ratings::types::{MealRatingDto, MealSubratingDto};
 use crate::routes::user::auth::{get_user_from_header, UserRole};
 use crate::{error::ApiResult, AppState};
 use axum_extra::TypedHeader;
 use headers::authorization::Bearer;
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PostCateringRatingReq {
-    pub stars: i32,
+#[derive(Serialize, Deserialize, Type)]
+#[sqlx(type_name="meal_rating_part_type")]
+pub struct PostSubrating {
+    pub question_id: i32,
+    pub points: i32,
+    pub description: Option<String>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PostRatingReq {
+    pub points: i32,
     #[serde(with = "DateTime")]
     pub served_at: DateTime<Utc>,
+    pub subratings: Vec<PostSubrating>
+}
+
+#[derive(sqlx::Encode)]
+struct Subratings<'a>(&'a [PostSubrating]);
+
+impl sqlx::Type<sqlx::Postgres> for Subratings<'_> {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("meal_rating_part_type[]")
+    }
 }
 
 pub async fn post_catering_rating<'a>(
     Extension(app_state): Extension<AppState>,
     bearer_token: TypedHeader<headers::Authorization<Bearer>>,
-    Json(new_rating): Json<PostCateringRatingReq>,
-) -> ApiResult<'a, Json<Vec<CateringRatingDto>>> {
+    Json(new_rating): Json<PostRatingReq>,
+) -> ApiResult<'a, Json<MealRatingDto>> {
+
     let user_public_data;
 
     match get_user_from_header(bearer_token) {
@@ -38,72 +60,98 @@ pub async fn post_catering_rating<'a>(
         );
     }
 
-    let query = sqlx::query_as!(
-        CateringRatingDto,
+    let rating = sqlx::query!(
         r#"
-        WITH new_rating AS (
-            INSERT INTO "rating" (user_id, stars)
-            VALUES ($1, $2)
-            RETURNING id, user_id, created_at, stars
-        ), proper_catering AS (
-            SELECT c.id, served_at, dish_name
-            FROM "catering" c 
-            JOIN "dish" d 
-            ON c.dish_id = c.id 
-            WHERE served_at = $3 
-            LIMIT 1
-        ), new_catering_rating AS (
-            INSERT INTO "catering_rating" (rating_id, catering_id)
-            SELECT nr.id, pc.id FROM new_rating nr, proper_catering pc
-            RETURNING catering_rating.id
+        WITH 
+        proper_meal AS (
+            SELECT id FROM "meal" WHERE served_at = $3 LIMIT 1
+        ), 
+        new_rating AS (
+            INSERT INTO "meal_rating" (meal_id, user_id, points)
+            SELECT id, $1, $2
+            FROM proper_meal
+            RETURNING id, user_id, created_at, points
+        ),
+        new_subratings AS (
+            INSERT INTO "meal_rating_part" (meal_rating_id, rating_question_id, points, description)
+            SELECT proper_meal.id, question_id, points, description FROM unnest(cast($4 as meal_rating_part_type[])), proper_meal
         )
-        SELECT 
-            ncr.id, 
-            nr.stars, 
-            nr.created_at as "created_at: DateTime<Utc>", 
-            pc.served_at as "served_at: DateTime<Utc>", 
-            pc.dish_name 
-        FROM "new_rating" nr,
-        "proper_catering" pc,
-        "new_catering_rating" ncr;
+        -- TODO: return whole object MealRating with subratings
+        SELECT created_at FROM new_rating;
         "#,
         user_public_data.id,
-        new_rating.stars,
-        new_rating.served_at as _
+        new_rating.points,
+        new_rating.served_at as _,
+        Subratings(&new_rating.subratings) as _
     )
     .fetch_one(&app_state.db_pool)
     .await;
 
-    if let Err(e) = query {
-        return ApiResult::Internal(e.to_string());
-    }
+    let rating= match rating {
+        Ok(rating) => rating,
+        Err(_) => {
+            return ApiResult::Internal("Internal database error".to_string());
+        }
+    };
 
-    let inserted_rating = query.unwrap();
     let mut result = vec![];
-    result.push(inserted_rating);
+    result.push(rating);
 
-    return ApiResult::Ok(Json(result));
+    return ApiResult::Ok(Json(
+                MealRatingDto {
+                id: 2,
+                points: 0,
+                //created_at: Result::expect(
+                //    DateTime::from_str("2020-01-05T00:00:00Z"),
+                //    "wrong datetime",
+                //),
+                subratings: vec![
+                    MealSubratingDto {
+                        description: Option::Some("TRAGEDIA".to_string()),
+                        id: 4,
+                        points: 0,
+                        question: "Smakowało?".to_string()
+                    },
+                    MealSubratingDto {
+                        description: Option::None,
+                        id: 5,
+                        points: 0,
+                        question: "Długo trzeba było czekać?".to_string()
+                    },
+                ]
+                }
+    ));
 }
 
 #[tokio::test]
 async fn test_post_catering_rating() {
-    let ratings_data = PostCateringRatingReq {
-        stars: 4,
+    let ratings_data = PostRatingReq {
+        points: 4,
         served_at: Result::expect(DateTime::from_str("2020-01-01T00:00:00Z"), "wrong time"),
+        subratings: vec![
+            PostSubrating {
+                question_id: 1,
+                points: 3,
+                description: Option::None
+            }
+        ]
     };
 
     let app_state = AppState::new().await;
     let app = crate::get_app(app_state.clone());
     let server = TestServer::new(app).expect("Failed to create test server");
 
-    // TODO: add authorization
+    let bearer_token = crate::utils::tests::login_returning_bearer_token().await;
+
     let res = server
         .post("/ratings/meals")
         .content_type("application/json")
         .json(&json!(ratings_data))
+        .add_header(
+            HeaderName::from_str("Authorization").unwrap(),
+            HeaderValue::from_str(&format!("Bearer {}", bearer_token)).unwrap(),
+        )
         .await;
 
-    // TODO: figure out why this is 400 not 401
-    res.assert_status_bad_request();
+    res.assert_status_ok();
 }
-*/
