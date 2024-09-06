@@ -110,7 +110,7 @@ async fn test_get_catering_ratings() {
         }
         ];
 
-
+        
     let json_res = res.json::<Vec<MealDto>>();
 
     assert_eq!(json!(json_res[0..1]), json!(expected_in_date));

@@ -114,7 +114,6 @@ pub async fn post_catering_rating<'a>(
 
 #[tokio::test]
 async fn test_post_catering_rating() {
-    // TODO: finish this test
     let ratings_data = PostRatingReq {
         points: 4,
         served_at: Result::expect(DateTime::from_str("2020-01-01T00:00:00Z"), "wrong time"),
