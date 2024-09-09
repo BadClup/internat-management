@@ -78,21 +78,23 @@ pub async fn post_catering_rating<'a>(
             RETURNING meal_rating_part.id, rating_question_id, points, description
         )
         SELECT 
-            nr.id, 
+            nr.id,
             nr.points, 
-            array_to_json(ARRAY(
+            COALESCE((
                 SELECT
-                    ROW(
-                    s.id, -- TODO: fix syntax error
-                    question,
-                    points,
-                    description
+                    json_agg(
+                        json_build_object(
+                            'id', s.id, 
+                            'question', question, 
+                            'points', points, 
+                            'description', description
+                        )
                     )
                 FROM new_subratings s 
                 JOIN meal_rating_question q 
                     ON s.rating_question_id = q.id
-            )) as "subratings: sqlx::types::Json<Vec<MealSubratingDto>>"
-        FROM new_rating nr;
+            ), '[]'::json) as "subratings: sqlx::types::Json<Vec<MealSubratingDto>>"
+            FROM new_rating nr;
         "#,
         user_public_data.id,
         new_rating.points,
@@ -146,13 +148,13 @@ async fn test_post_catering_rating() {
 
     let expected_output =  TestMealRating {
         points: 4,
-        subratings: vec![
+        subratings: Some(sqlx::types::Json(vec![
             TestMealSubrating {
                 description: Option::None,
-                points: 0,
-                question: "Długo trzeba było czekać?".to_string()
+                points: 3,
+                question: "Ciepłe?".to_string()
             }
-        ].into()
+        ])).into()
     };
 
     let json_res = res.json::<TestMealRating>();
