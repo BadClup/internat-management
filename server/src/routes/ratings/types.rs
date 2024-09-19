@@ -16,7 +16,7 @@ pub struct MealRatingDto {
     pub points: i32,
     //#[serde(with = "DateTime")]
     //pub created_at: DateTime<Utc>,
-    pub subratings: Option<Json<Vec<MealSubratingDto>>>
+    pub subratings: Option<Json<Vec<MealSubratingDto>>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -25,7 +25,7 @@ pub struct MealDto {
     #[serde(with = "DateTime")]
     pub served_at: DateTime<Utc>,
     pub dish_name: String,
-    pub ratings: Option<Json<Vec<MealRatingDto>>>
+    pub ratings: Option<Json<Vec<MealRatingDto>>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -38,7 +38,7 @@ pub struct TestMealSubrating {
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct TestMealRating {
     pub points: i32,
-    pub subratings: Option<sqlx::types::Json<Vec<TestMealSubrating>>>
+    pub subratings: Option<sqlx::types::Json<Vec<TestMealSubrating>>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -46,7 +46,7 @@ pub struct TestMeal {
     #[serde(with = "DateTime")]
     pub served_at: DateTime<Utc>,
     pub dish_name: String,
-    pub ratings: Vec<TestMealRating>
+    pub ratings: Vec<TestMealRating>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
