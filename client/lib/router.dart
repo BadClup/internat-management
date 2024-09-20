@@ -40,8 +40,8 @@ final router = GoRouter(initialLocation: "/login", routes: [
                   final bearerToken = userState.bearerToken;
 
                   if (userId != null && bearerToken != null) {
-                    context.read<ChatBloc>().add(
-                        GetMessages(userId: userId, bearerToken: bearerToken));
+                    context.read<ChatBloc>().add(GetMessagesAndConnectToWs(
+                        bearerToken: bearerToken, residentId: userId));
                   }
 
                   return ChatScreen(
@@ -91,6 +91,7 @@ final router = GoRouter(initialLocation: "/login", routes: [
                 builder: (context, state) {
                   final bearerToken =
                       context.watch<UserBloc>().state.bearerToken;
+
                   context
                       .read<ChatBloc>()
                       .add(GetConversations(bearerToken: bearerToken!));
@@ -103,18 +104,18 @@ final router = GoRouter(initialLocation: "/login", routes: [
                   final userState = context.watch<UserBloc>().state;
                   final parameter = state.pathParameters["userId"]!;
 
-                  final userId = int.parse(parameter);
+                  final residentId = int.parse(parameter);
                   final bearerToken = userState.bearerToken;
 
                   if (bearerToken != null) {
-                    context.read<ChatBloc>().add(
-                        GetMessages(userId: userId, bearerToken: bearerToken));
+                    context.read<ChatBloc>().add(GetMessages(
+                        userId: residentId, bearerToken: bearerToken));
 
                     context.read<ChatBloc>().add(ConnectToWebsocket(
-                        residentId: userId, bearerToken: bearerToken));
+                        residentId: residentId, bearerToken: bearerToken));
                   }
 
-                  return ChatScreen(residentId: userId);
+                  return ChatScreen(residentId: residentId);
                 }),
           ],
         ),

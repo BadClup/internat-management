@@ -22,7 +22,6 @@ class ChatScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<ChatBloc, ChatState>(
       listener: (context, state) {
-
         final channel = state.wsChannel;
 
         if(channel != null) {
@@ -60,10 +59,10 @@ class ChatScreen extends StatelessWidget {
                 final messagesList = messages.map((message) {
                   final content = convertToUtf8(message.content);
 
-                  //DateTime createdAt = DateTime.parse(message.createdAt);
-                  //final format = DateFormat.MMMd('pl');
-                  // final formattedDate = format.format(createdAt);
-                  const formattedDate = "chub";
+                  DateTime createdAt = DateTime.parse(message.createdAt);
+                  final format = DateFormat.MMMd('pl');
+                  final formattedDate = format.format(createdAt);
+                  //const formattedDate = "chub";
 
                   return Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
@@ -73,19 +72,19 @@ class ChatScreen extends StatelessWidget {
                           ? MainAxisAlignment.end
                           : MainAxisAlignment.start,
                       children: [
-                          Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 6, horizontal: 16),
-                                decoration: BoxDecoration(
-                                    color: AppColors.primaryAccent,
-                                    borderRadius: BorderRadius.circular(20)),
-                                child: Text(content),
-                              ),
-                              Text(formattedDate),
-                            ],
-                          ),
+                        Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 6, horizontal: 16),
+                              decoration: BoxDecoration(
+                                  color: AppColors.primaryAccent,
+                                  borderRadius: BorderRadius.circular(20)),
+                              child: Text(content),
+                            ),
+                            Text(formattedDate),
+                          ],
+                        ),
                       ],
                     ),
                   );
@@ -95,7 +94,8 @@ class ChatScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     child: ListView(
-                      children: List.from(messagesList.reversed),
+                      reverse: true,
+                      children: List.from(messagesList),
                     ),
                   ),
                 );

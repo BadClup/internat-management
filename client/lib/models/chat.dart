@@ -6,6 +6,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/io.dart';
 
+extension StatusExtension on http.Response {
+  bool isStatusOk() {
+    return statusCode ~/ 100 == 2;
+  }
+}
+
 class Message extends Equatable {
   final String content;
   final int id;
@@ -83,7 +89,7 @@ Future<List<Message>> getUserMessages(int userId, String bearerToken) async {
   final response =
       await http.get(url, headers: {'Authorization': 'Bearer $bearerToken'});
 
-  if (response.statusCode ~/ 100 != 2) {
+  if (!response.isStatusOk()) {
     throw Exception("Failed to get user messages. Details: ${response.body}");
   }
 
@@ -105,10 +111,11 @@ Future<void> sendMessage(
     'Authorization': 'Bearer $bearerToken'
   });
 
-  if (response.statusCode ~/ 100 != 2) {
-    print(response.statusCode);
+  if (!response.isStatusOk()) {
     throw Exception("Failed to send Message");
   }
+
+  print("message was sent!");
 }
 
 Future<List<Conversation>> getConversations(String bearerToken) async {
@@ -118,7 +125,7 @@ Future<List<Conversation>> getConversations(String bearerToken) async {
   final response =
       await http.get(url, headers: {'Authorization': 'Bearer $bearerToken'});
 
-  if (response.statusCode ~/ 100 != 2) {
+  if (!response.isStatusOk()) {
     throw Exception("Failed to get conversations. Details: ${response.body}");
   }
 
@@ -129,8 +136,7 @@ Future<List<Conversation>> getConversations(String bearerToken) async {
   return conversations;
 }
 
-Future<IOWebSocketChannel> connectToWebsocket(
-    int residentId, String bearerToken) async {
+Future<IOWebSocketChannel> connectToWebsocket(int residentId, String bearerToken) async {
   final apiPrefix = dotenv.env["API_URL"];
   final webSocketKey = dotenv.env["WEB_SOCKET_KEY"];
   final url = Uri.parse("$apiPrefix/chat/ws");
@@ -146,8 +152,7 @@ Future<IOWebSocketChannel> connectToWebsocket(
 
   final httpClientResponse = await httpClientRequest.close();
   if (httpClientResponse.statusCode != HttpStatus.switchingProtocols) {
-    print(
-        'Failed to connect to WebSocket: ${httpClientResponse.statusCode} ${httpClientResponse.reasonPhrase}');
+    print('Failed to connect to WebSocket: ${httpClientResponse.statusCode} ${httpClientResponse.reasonPhrase}');
     throw Exception(
         'Failed to connect to WebSocket: ${httpClientResponse.statusCode} ${httpClientResponse.reasonPhrase}');
   }

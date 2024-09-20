@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:internat_management/models/chat.dart';
@@ -16,10 +14,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
       try {
         final data = await getUserMessages(event.userId, event.bearerToken);
-        print("Got messages!");
+        // print("Got messages!");
         emit(ChatState(messages: data, isLoading: false, error: null));
       } catch (e) {
-        print("error on getMessages: $e");
+        // print("error on getMessages: $e");
         emit(const ChatState(
             messages: null, isLoading: false, error: "Could not get messages"));
       }
@@ -30,7 +28,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
       try {
         await sendMessage(event.residentId, event.bearerToken, event.content);
-
         final data = await getUserMessages(event.residentId, event.bearerToken);
 
         emit(ChatState(messages: data, isLoading: false, error: null));
@@ -70,7 +67,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       final channel = event.channel;
 
       channel.stream.listen(
-            (data) {
+        (data) {
           print("New message: $data");
         },
         onError: (error) {
@@ -80,6 +77,20 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
           print("WebSocket stream closed");
         },
       );
+    });
+
+    on<GetMessagesAndConnectToWs>((event, emit) async {
+      emit(const ChatState(isLoading: true, error: null));
+
+      try {
+        final data = await getUserMessages(event.residentId, event.bearerToken);
+        final channel =
+            await connectToWebsocket(event.residentId, event.bearerToken);
+        emit(ChatState(
+            messages: data, wsChannel: channel, isLoading: false, error: null));
+      } catch (e) {
+        emit(ChatState(isLoading: false, error: "$e"));
+      }
     });
   }
 }

@@ -52,11 +52,21 @@ class ConnectToWebsocket extends ChatEvent {
 }
 
 class ListenWebsocket extends ChatEvent {
-
   final IOWebSocketChannel channel;
 
   const ListenWebsocket(this.channel);
 
   @override
   List<Object> get props => [channel];
+}
+
+class GetMessagesAndConnectToWs extends ChatEvent {
+  final String bearerToken;
+  final int residentId;
+
+  const GetMessagesAndConnectToWs(
+      {required this.bearerToken, required this.residentId});
+
+  @override
+  List<Object> get props => [bearerToken, residentId];
 }
