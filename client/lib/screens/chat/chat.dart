@@ -1,17 +1,9 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:internat_management/blocs/chat/chat_bloc.dart';
-import 'package:internat_management/models/theme.dart';
+import 'package:internat_management/screens/chat/message_box.dart';
 import 'package:internat_management/screens/chat/send_message_box.dart';
 import 'package:internat_management/shared/navbar.dart';
-import 'package:internat_management/utils/convert_to_utf_8.dart';
-import 'package:intl/intl.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-
-import '../../blocs/user/user_bloc.dart';
 
 class ChatScreen extends StatelessWidget {
   const ChatScreen({required this.residentId, super.key});
@@ -24,7 +16,7 @@ class ChatScreen extends StatelessWidget {
       listener: (context, state) {
         final channel = state.wsChannel;
 
-        if(channel != null) {
+        if (channel != null) {
           context.read<ChatBloc>().add(ListenWebsocket(channel));
         }
       },
@@ -39,55 +31,18 @@ class ChatScreen extends StatelessWidget {
 
               if (state.isLoading) {
                 return const Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(),
-                    ],
-                  ),
-                );
+                    child: Center(child: CircularProgressIndicator()));
               }
 
               if (state.error != null) {
-                return const Text(
-                    "Nie udalo sie nam pobrać wiadomości z chatu");
+                return const Expanded(
+                    child:
+                        Center(child: Text("Nie udało sie pobrać wiadomośći")));
               }
 
-              if (messages != null) {
-                final userId = context.watch<UserBloc>().state.user.id!;
-
+              if (messages != null && messages.isNotEmpty) {
                 final messagesList = messages.map((message) {
-                  final content = convertToUtf8(message.content);
-
-                  DateTime createdAt = DateTime.parse(message.createdAt);
-                  final format = DateFormat.MMMd('pl');
-                  final formattedDate = format.format(createdAt);
-                  //const formattedDate = "chub";
-
-                  return Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    width: double.maxFinite,
-                    child: Row(
-                      mainAxisAlignment: userId == message.senderId
-                          ? MainAxisAlignment.end
-                          : MainAxisAlignment.start,
-                      children: [
-                        Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 6, horizontal: 16),
-                              decoration: BoxDecoration(
-                                  color: AppColors.primaryAccent,
-                                  borderRadius: BorderRadius.circular(20)),
-                              child: Text(content),
-                            ),
-                            Text(formattedDate),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
+                  return MessageBox(message: message);
                 }).toList();
 
                 return Expanded(
@@ -101,7 +56,21 @@ class ChatScreen extends StatelessWidget {
                 );
               }
 
-              return const SizedBox();
+              return Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.sentiment_dissatisfied,
+                      color: Colors.grey[600],
+                      size: 64,
+                    ),
+                    const Padding(padding: EdgeInsets.all(5)),
+                    Text("Brak wiadomości do wyświetlenia",
+                        style: TextStyle(color: Colors.grey[600]))
+                  ],
+                ),
+              );
             }),
             SendMessagebox(
               residentId: residentId,

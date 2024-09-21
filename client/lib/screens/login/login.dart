@@ -61,7 +61,7 @@ class LoginScreen extends StatelessWidget {
                             padding: const EdgeInsets.only(top: 15),
                             child: Text(
                               state.error.mainError!,
-                              style: TextStyle(color: AppColors.error),
+                              style: TextStyle(color: AppColors.error.main),
                             ),
                           )
                         : const SizedBox.shrink(),

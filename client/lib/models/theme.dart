@@ -1,30 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+class ColorTypes {
+  Color? main;
+  Color? light;
+  Color? dark;
+
+  ColorTypes({this.main, this.light, this.dark});
+}
+
 class AppColors {
-  static Color primaryColor = const Color.fromRGBO(103, 80, 164, 1);
-  static Color primaryAccent = const Color.fromRGBO(79, 55, 139, 1);
-  static Color textColor = const Color.fromRGBO(29, 27, 32, 1);
-  static Color error = const Color.fromRGBO(179, 38, 30, 1);
+  static ColorTypes primaryColor = ColorTypes(
+    main: const Color.fromRGBO(103, 80, 164, 1),
+    light: const Color.fromRGBO(139, 116, 203, 1),
+    dark: const Color.fromRGBO(79, 55, 139, 1),
+  );
+
+  static ColorTypes error = ColorTypes(
+      main: const Color.fromRGBO(208, 68, 65, 1),
+      light: const Color.fromRGBO(242, 132, 130, 1),
+      dark: const Color.fromRGBO(172, 27, 24, 1));
+
+  static ColorTypes grayColor = ColorTypes(
+    light: const Color.fromRGBO(212, 212, 212, 1),
+    dark: const Color.fromRGBO(92, 92, 92, 1),
+  );
+
+  static ColorTypes backgroundColor = ColorTypes(
+    light: const Color.fromRGBO(240, 239, 244, 1),
+    dark: const Color.fromRGBO(0, 0, 0, 1),
+  );
+
+  static Color white = const Color.fromRGBO(255, 255, 255, 1);
+  static Color black = const Color.fromRGBO(0, 0, 0, 1);
+// static Color textColor = const Color.fromRGBO(29, 27, 32, 1);
 }
 
 class AppTheme {
   static final ThemeData lightTheme = ThemeData(
     colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.deepPurple, surface: Colors.white),
+        seedColor: AppColors.primaryColor.main!,
+        surface: AppColors.backgroundColor.light),
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.deepPurple[100],
     ),
     inputDecorationTheme: InputDecorationTheme(
         border: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(15))),
-        fillColor: AppColors.primaryColor,
-        prefixIconColor: AppColors.primaryColor),
+        fillColor: AppColors.primaryColor.main,
+        prefixIconColor: AppColors.primaryColor.main),
   );
   static final ThemeData darkTheme = ThemeData(
     colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.deepPurple,
-        surface: Colors.grey[700],
+        seedColor: AppColors.primaryColor.main!,
+        surface: AppColors.backgroundColor.dark,
         brightness: Brightness.dark),
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.deepPurple[800],
@@ -32,8 +61,8 @@ class AppTheme {
     inputDecorationTheme: InputDecorationTheme(
         border: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(15))),
-        fillColor: AppColors.primaryColor,
-        prefixIconColor: AppColors.primaryColor),
+        fillColor: AppColors.primaryColor.main,
+        prefixIconColor: AppColors.primaryColor.main),
   );
 
   static Future<ThemeData?> getTheme() async {
@@ -44,7 +73,7 @@ class AppTheme {
       return darkTheme;
     }
 
-    if(theme == "light") {
+    if (theme == "light") {
       return lightTheme;
     }
 
@@ -61,4 +90,3 @@ class AppTheme {
     }
   }
 }
-

@@ -7,21 +7,20 @@ import '../../blocs/user/user_bloc.dart';
 import '../../models/theme.dart';
 
 class SendMessagebox extends StatelessWidget {
-  SendMessagebox({required this.residentId ,super.key});
+  SendMessagebox({required this.residentId, super.key});
 
   final int residentId;
   final _messageTextFieldController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode =
+        AppTheme.darkTheme == context.watch<ThemeBloc>().state.themeData;
+
     return BlocBuilder<UserBloc, UserState>(
       builder: (context, state) {
-        return Container(
+        return SizedBox(
           height: 70,
-          color:
-              AppTheme.darkTheme == context.watch<ThemeBloc>().state.themeData
-                  ? AppColors.primaryAccent
-                  : Colors.deepPurple[200],
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
             child: Row(
@@ -29,7 +28,20 @@ class SendMessagebox extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
-                    child: TextField(controller: _messageTextFieldController)),
+                    child: TextField(
+                  controller: _messageTextFieldController,
+                  decoration: InputDecoration(
+                    hintText: 'Wpisz wiadomość',
+                    filled: true,
+                    fillColor: isDarkMode
+                        ? AppColors.backgroundColor.dark
+                        : AppColors.backgroundColor.light,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                )),
                 Padding(
                   padding: const EdgeInsets.only(left: 20.0),
                   child: IconButton.filled(
@@ -41,7 +53,7 @@ class SendMessagebox extends StatelessWidget {
                             bearerToken: state.bearerToken!,
                             residentId: residentId));
                       },
-                      icon: const Icon(Icons.send)),
+                      icon: Icon(Icons.send, color: isDarkMode ? AppColors.primaryColor.main : AppColors.primaryColor.dark)),
                 ),
               ],
             ),

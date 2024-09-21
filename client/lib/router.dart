@@ -108,10 +108,7 @@ final router = GoRouter(initialLocation: "/login", routes: [
                   final bearerToken = userState.bearerToken;
 
                   if (bearerToken != null) {
-                    context.read<ChatBloc>().add(GetMessages(
-                        userId: residentId, bearerToken: bearerToken));
-
-                    context.read<ChatBloc>().add(ConnectToWebsocket(
+                    context.read<ChatBloc>().add(GetMessagesAndConnectToWs(
                         residentId: residentId, bearerToken: bearerToken));
                   }
 
