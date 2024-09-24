@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 #[allow(unused)]
 use serde_json::json;
 use sqlx::postgres::PgQueryResult;
+use sqlx::PgPool;
 
 #[allow(unused)]
 use crate::routes::ratings::types::{
@@ -27,7 +28,7 @@ pub struct DeleteRatingReq {
 }
 
 async fn query_ratings<'a>(
-    app_state: &AppState,
+    db_pool: &PgPool,
     rating_ids: Vec<i32>,
     subrating_ids: Vec<i32>,
 ) -> Result<PgQueryResult, sqlx::Error> {
@@ -50,7 +51,7 @@ async fn query_ratings<'a>(
         rating_ids as _,
         subrating_ids as _
     )
-    .execute(&app_state.db_pool)
+    .execute(db_pool)
     .await
 }
 
@@ -74,7 +75,7 @@ pub async fn delete_catering_rating<'a>(
         );
     }
 
-    let rating = query_ratings(&app_state, to_delete.ratings, to_delete.subratings).await;
+    let rating = query_ratings(&app_state.db_pool, to_delete.ratings, to_delete.subratings).await;
 
     match rating {
         Ok(rating) => rating,
@@ -86,15 +87,14 @@ pub async fn delete_catering_rating<'a>(
     return ApiResult::Ok(());
 }
 
-// TODO: setup sqlx database tester
-#[tokio::test]
-async fn test_delete_catering_rating() {
+#[sqlx::test(fixtures(path = "../../../../db_docker", scripts("schema.sql", "seed.sql")))]
+async fn test_delete_catering_rating(pool: PgPool) {
     let ratings_data = DeleteRatingReq {
-        ratings: vec![1],
+        ratings: vec![],
         subratings: vec![],
     };
 
-    let app_state = AppState::new().await;
+    let app_state = AppState { db_pool: pool };
     let app = crate::get_app(app_state.clone());
     let server = TestServer::new(app).expect("Failed to create test server");
 

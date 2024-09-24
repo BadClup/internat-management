@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::postgres::PgTypeInfo;
 use sqlx::prelude::Type;
+use sqlx::PgPool;
 
 #[allow(unused)]
 use crate::routes::ratings::types::{
@@ -134,8 +135,8 @@ pub async fn post_catering_rating<'a>(
     return ApiResult::Ok(Json(rating));
 }
 
-#[tokio::test]
-async fn test_post_catering_rating() {
+#[sqlx::test(fixtures(path = "../../../../db_docker", scripts("schema.sql", "seed.sql")))]
+async fn test_post_catering_rating(pool: PgPool) {
     let ratings_data = PostRatingReq {
         points: 4,
         served_at: Result::expect(DateTime::from_str("2020-01-01T00:00:00Z"), "wrong time"),
@@ -146,7 +147,7 @@ async fn test_post_catering_rating() {
         }],
     };
 
-    let app_state = AppState::new().await;
+    let app_state = AppState { db_pool: pool };
     let app = crate::get_app(app_state.clone());
     let server = TestServer::new(app).expect("Failed to create test server");
 
