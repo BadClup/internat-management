@@ -6,6 +6,7 @@ use axum_test::TestServer;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+#[allow(unused)]
 use sqlx::PgPool;
 
 use crate::{
@@ -62,7 +63,7 @@ async fn query_ratings_with_date(
     .await
 }
 
-pub async fn get_catering_rating<'a>(
+pub async fn get_meal_ratings<'a>(
     Extension(app_state): Extension<AppState>,
     Json(rating_options): Json<GetRatingReq>,
 ) -> ApiResult<'a, Json<Vec<MealDto>>> {
@@ -111,7 +112,7 @@ fn check_first_res(response: Vec<MealDto>) {
 }
 
 #[sqlx::test(fixtures(path = "../../../../db_docker", scripts("schema.sql", "seed.sql")))]
-async fn test_get_catering_ratings(pool: PgPool) {
+async fn test_get_meal_ratings(pool: PgPool) {
     let app_state = AppState { db_pool: pool };
     let app = crate::get_app(app_state.clone());
     let server = TestServer::new(app).expect("Failed to create test server");

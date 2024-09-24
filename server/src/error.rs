@@ -5,12 +5,15 @@ use axum::response::{IntoResponse, Response};
 pub enum ApiResult<'a, T> {
     Ok(T),
     NoContent,
-
+    #[allow(unused)]
     Unauthorized,
     Forbidden,
+    #[allow(unused)]
     NotFound,
     Internal(String),
+    #[allow(unused)]
     Code(StatusCode),
+    #[allow(unused)]
     Custom(&'a str, StatusCode),
 }
 

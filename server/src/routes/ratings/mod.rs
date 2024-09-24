@@ -1,13 +1,13 @@
 use axum::{routing::get, Router};
 
-mod catering;
+mod meals;
 mod types;
 
 pub fn get_router() -> Router {
     Router::new().route(
         "/meals",
-        get(catering::get::get_catering_rating)
-            .post(catering::post::post_catering_rating)
-            .delete(catering::delete::delete_catering_rating),
+        get(meals::get::get_meal_ratings)
+            .post(meals::post::post_meal_rating)
+            .delete(meals::delete::delete_meals_ratings),
     )
 }

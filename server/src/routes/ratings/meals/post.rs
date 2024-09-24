@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::postgres::PgTypeInfo;
 use sqlx::prelude::Type;
+#[allow(unused)]
 use sqlx::PgPool;
 
 #[allow(unused)]
@@ -97,7 +98,7 @@ async fn query_ratings<'a>(
     .await
 }
 
-pub async fn post_catering_rating<'a>(
+pub async fn post_meal_rating<'a>(
     Extension(app_state): Extension<AppState>,
     bearer_token: TypedHeader<headers::Authorization<Bearer>>,
     Json(new_rating): Json<PostRatingReq>,
@@ -111,7 +112,7 @@ pub async fn post_catering_rating<'a>(
 
     if !matches!(user_public_data.role, UserRole::Resident) {
         return ApiResult::Custom(
-            "You need to be a resident in order to rate catering",
+            "You need to be a resident in order to rate meals",
             StatusCode::FORBIDDEN,
         );
     }
@@ -136,7 +137,7 @@ pub async fn post_catering_rating<'a>(
 }
 
 #[sqlx::test(fixtures(path = "../../../../db_docker", scripts("schema.sql", "seed.sql")))]
-async fn test_post_catering_rating(pool: PgPool) {
+async fn test_post_meal_rating(pool: PgPool) {
     let ratings_data = PostRatingReq {
         points: 4,
         served_at: Result::expect(DateTime::from_str("2020-01-01T00:00:00Z"), "wrong time"),

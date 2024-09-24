@@ -55,14 +55,13 @@ async fn query_ratings<'a>(
     .await
 }
 
-pub async fn delete_catering_rating<'a>(
+pub async fn delete_meals_ratings<'a>(
     Extension(app_state): Extension<AppState>,
     bearer_token: TypedHeader<headers::Authorization<Bearer>>,
     Json(to_delete): Json<DeleteRatingReq>,
 ) -> ApiResult<'a, ()> {
     let user_public_data;
 
-    // TODO: make a function for it
     match get_user_from_header(bearer_token) {
         Ok(v) => user_public_data = v,
         Err(e) => return e,
@@ -70,7 +69,7 @@ pub async fn delete_catering_rating<'a>(
 
     if !matches!(user_public_data.role, UserRole::Resident) {
         return ApiResult::Custom(
-            "You need to be a resident in order to rate catering",
+            "You need to be a resident in order to rate meals",
             StatusCode::FORBIDDEN,
         );
     }
@@ -88,7 +87,7 @@ pub async fn delete_catering_rating<'a>(
 }
 
 #[sqlx::test(fixtures(path = "../../../../db_docker", scripts("schema.sql", "seed.sql")))]
-async fn test_delete_catering_rating(pool: PgPool) {
+async fn test_delete_meals_ratings(pool: PgPool) {
     let ratings_data = DeleteRatingReq {
         ratings: vec![],
         subratings: vec![],
