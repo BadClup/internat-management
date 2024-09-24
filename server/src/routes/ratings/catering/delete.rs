@@ -84,7 +84,7 @@ pub async fn delete_catering_rating<'a>(
         }
     };
 
-    return ApiResult::Ok(());
+    return ApiResult::NoContent;
 }
 
 #[sqlx::test(fixtures(path = "../../../../db_docker", scripts("schema.sql", "seed.sql")))]
@@ -110,5 +110,5 @@ async fn test_delete_catering_rating(pool: PgPool) {
         )
         .await;
 
-    res.assert_status_ok();
+    res.assert_status_success();
 }
