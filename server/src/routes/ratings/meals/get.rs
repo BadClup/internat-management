@@ -111,9 +111,9 @@ fn check_first_res(response: Vec<MealDto>) {
     assert_eq!(json!(response[0..1]), json!(expected_in_date));
 }
 
-#[sqlx::test(fixtures(path = "../../../../db_docker", scripts("schema.sql", "seed.sql")))]
-async fn test_get_meal_ratings(pool: PgPool) {
-    let app_state = AppState { db_pool: pool };
+#[tokio::test]
+async fn test_get_meal_ratings() {
+    let app_state = AppState::new().await;
     let app = crate::get_app(app_state.clone());
     let server = TestServer::new(app).expect("Failed to create test server");
 
