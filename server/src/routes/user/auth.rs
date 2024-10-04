@@ -1,9 +1,9 @@
-use axum::{Extension, Json};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::{Extension, Json};
 use axum_extra::TypedHeader;
-use headers::Authorization;
 use headers::authorization::Bearer;
+use headers::Authorization;
 use hmac::digest::KeyInit;
 use hmac::Hmac;
 use jwt::{AlgorithmType, Header, SignWithKey, Token, VerifyWithKey};
@@ -14,8 +14,8 @@ use serde_json::json;
 use sha2::{Digest, Sha256, Sha512};
 use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
 
-use crate::AppState;
 use crate::error::ApiResult;
+use crate::AppState;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StudentSpecificData {
@@ -74,11 +74,14 @@ pub struct UserCredentials {
     pub password: String,
 }
 
-pub fn get_user_from_header<'a, T>(token: TypedHeader<Authorization<Bearer>>) -> Result<UserPublicData, ApiResult<'a, T>> {
+pub fn get_user_from_header<'a, T>(
+    token: TypedHeader<Authorization<Bearer>>,
+) -> Result<UserPublicData, ApiResult<'a, T>> {
     match deserialize_jwt(token.token()) {
         Ok(user) => Ok(user),
         Err(_) => Err(ApiResult::Custom(
-            "Failed to deserialize jwt from Bearer token", StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to deserialize jwt from Bearer token",
+            StatusCode::INTERNAL_SERVER_ERROR,
         )),
     }
 }
@@ -119,7 +122,7 @@ pub async fn login<'a>(
         room_nr: user.room_nr,
         role: user.role,
     };
-    
+
     let jwt = match serialize_jwt(user_public_data.clone()) {
         Ok(val) => val,
         Err(e) => return ApiResult::from(e),
@@ -145,8 +148,7 @@ pub fn deserialize_jwt(token: &str) -> anyhow::Result<UserPublicData> {
 
     let key: Hmac<Sha256> = Hmac::new_from_slice(secret.as_bytes())?;
 
-    let token: Token<Header, UserPublicData, _> =
-        VerifyWithKey::verify_with_key(token, &key)?;
+    let token: Token<Header, UserPublicData, _> = VerifyWithKey::verify_with_key(token, &key)?;
 
     Ok(token.claims().clone())
 }
@@ -205,7 +207,8 @@ pub async fn register_residents<'a>(
         passwords.push(password);
     }
 
-    let query = sqlx::query!(r#"
+    let query = sqlx::query!(
+        r#"
         INSERT INTO "user" (username, password, first_name, last_name, room_number, role)
         SELECT username, password, first_name,last_name, room_number, role
         FROM UNNEST(
@@ -223,7 +226,8 @@ pub async fn register_residents<'a>(
         room_numbers as Vec<i32>,
         user_roles as Vec<String>,
     )
-        .execute(&app_state.db_pool).await;
+    .execute(&app_state.db_pool)
+    .await;
 
     if let Err(e) = query {
         return ApiResult::from(e);
@@ -264,13 +268,13 @@ fn generate_random_password(length: usize) -> String {
 
 #[cfg(test)]
 pub mod test {
-    use std::str::FromStr;
+    use crate::routes::user::auth::{generate_random_password, UserRegisterDto, UserRole};
+    use crate::utils::tests::login_returning_bearer_token;
+    use crate::AppState;
     use axum_test::http::{HeaderName, HeaderValue};
     use axum_test::TestServer;
     use serde_json::json;
-    use crate::AppState;
-    use crate::routes::user::auth::{generate_random_password, UserRegisterDto, UserRole};
-    use crate::utils::tests::login_returning_bearer_token;
+    use std::str::FromStr;
 
     #[test]
     fn test_generate_random_password() {
@@ -318,7 +322,8 @@ pub mod test {
         ];
 
         for user in test_users {
-            let res = server.post("/user/register-many")
+            let res = server
+                .post("/user/register-many")
                 .content_type("application/json")
                 .add_header(
                     HeaderName::from_str("Authorization").unwrap(),
@@ -333,23 +338,21 @@ pub mod test {
                     res.assert_status_ok();
 
                     // cleanup
-                    sqlx::query!("DELETE FROM \"user\" WHERE username = 'test1' OR username = 'test2'")
-                        .execute(&app_state.db_pool)
-                        .await
-                        .expect("Failed to delete test users");
+                    sqlx::query!(
+                        "DELETE FROM \"user\" WHERE username = 'test1' OR username = 'test2'"
+                    )
+                    .execute(&app_state.db_pool)
+                    .await
+                    .expect("Failed to delete test users");
                 }
             }
         }
     }
-    
+
     #[tokio::test]
     async fn test_login() {
-        let app_state = AppState::new().await;
-        let app = crate::get_app(app_state.clone());
-        let server = TestServer::new(app).expect("Failed to create test server");
-
         let bearer_token = login_returning_bearer_token().await;
-        
-       assert_ne!(bearer_token, "".to_string());
+
+        assert_ne!(bearer_token, "".to_string());
     }
 }

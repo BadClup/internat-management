@@ -4,12 +4,16 @@ use axum::response::{IntoResponse, Response};
 #[derive(Clone, PartialEq)]
 pub enum ApiResult<'a, T> {
     Ok(T),
-
+    NoContent,
+    #[allow(unused)]
     Unauthorized,
     Forbidden,
+    #[allow(unused)]
     NotFound,
     Internal(String),
+    #[allow(unused)]
     Code(StatusCode),
+    #[allow(unused)]
     Custom(&'a str, StatusCode),
 }
 
@@ -17,6 +21,7 @@ impl<'a, T> ApiResult<'a, T> {
     pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> ApiResult<'a, U> {
         match self {
             ApiResult::Ok(v) => ApiResult::Ok(f(v)),
+            ApiResult::NoContent => ApiResult::NoContent,
             ApiResult::Unauthorized => ApiResult::Unauthorized,
             ApiResult::Forbidden => ApiResult::Forbidden,
             ApiResult::NotFound => ApiResult::NotFound,
@@ -46,6 +51,7 @@ impl<T> ApiResult<'_, T> {
             ApiResult::Unauthorized => StatusCode::UNAUTHORIZED,
             ApiResult::Forbidden => StatusCode::FORBIDDEN,
             ApiResult::NotFound => StatusCode::NOT_FOUND,
+            ApiResult::NoContent => StatusCode::NO_CONTENT,
             ApiResult::Ok(_) => StatusCode::OK,
             ApiResult::Custom(_, status_code) => *status_code,
             ApiResult::Code(status_code) => *status_code,
@@ -57,7 +63,10 @@ impl<T> ApiResult<'_, T> {
     }
 }
 
-impl<T> IntoResponse for ApiResult<'_, T> where T: IntoResponse {
+impl<T> IntoResponse for ApiResult<'_, T>
+where
+    T: IntoResponse,
+{
     fn into_response(self) -> Response {
         if let ApiResult::Ok(v) = self {
             return v.into_response();

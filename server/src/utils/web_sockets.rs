@@ -1,6 +1,6 @@
+use crate::routes::chat;
 use axum_test::http::StatusCode;
 use serde::{Deserialize, Serialize};
-use crate::routes::chat;
 
 #[derive(Serialize, Deserialize)]
 pub enum WsMessage {
@@ -18,6 +18,9 @@ pub struct StatusMessage {
 
 impl From<(String, StatusCode)> for StatusMessage {
     fn from((message, status_code): (String, StatusCode)) -> Self {
-        Self { message, status_code: status_code.as_u16() }
+        Self {
+            message,
+            status_code: status_code.as_u16(),
+        }
     }
 }

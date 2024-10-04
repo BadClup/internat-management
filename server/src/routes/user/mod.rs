@@ -1,5 +1,5 @@
-use axum::Router;
 use axum::routing::{get, post};
+use axum::Router;
 
 pub mod auth;
 mod info;
