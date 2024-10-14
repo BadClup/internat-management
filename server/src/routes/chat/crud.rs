@@ -131,10 +131,16 @@ async fn get_messages<'a>(
                 er.approved_by,
                 er.approved_at,
                 er.came_back_at,
-                er.came_back_approved_by
+                er.came_back_approved_by,
+                s.first_name as sender_first_name,
+                s.last_name as sender_last_name,
+                r.first_name as recipient_first_name,
+                r.last_name as recipient_last_name
             FROM message as m
             LEFT JOIN text_message t ON t.message_id = m.id
             LEFT JOIN exit_request_message er ON er.message_id = m.id
+            LEFT JOIN "user" s ON s.id = m.sender_id
+            LEFT JOIN "user" r ON r.id = m.recipient_id
             WHERE recipient_id = $2 OR (recipient_id = $1 AND $3)
             ORDER BY created_at DESC
             LIMIT $4
@@ -160,10 +166,18 @@ async fn get_messages<'a>(
         // it checks if message kind is text_message:
         if let Some(content) = msg.content {
             result.push(GetChatMessageDto {
-                recipient_id: msg.recipient_id,
+                recipient: super::UserData {
+                    id: msg.recipient_id,
+                    name: msg.recipient_first_name,
+                    lastname: msg.recipient_last_name,
+                },
+                sender: super::UserData {
+                    id: msg.sender_id,
+                    name: msg.sender_first_name,
+                    lastname: msg.sender_last_name,
+                },
                 id: msg.id,
                 reply_to: msg.reply_to,
-                sender_id: msg.sender_id,
                 created_at: msg.created_at.to_string(),
                 message_kind: ChatMessageKind::Text(ChatTextMessage { content }),
             });
@@ -175,10 +189,18 @@ async fn get_messages<'a>(
             }
 
             result.push(GetChatMessageDto {
-                recipient_id: msg.recipient_id,
+                recipient: super::UserData {
+                    id: msg.recipient_id,
+                    name: msg.recipient_first_name,
+                    lastname: msg.recipient_last_name,
+                },
+                sender: super::UserData {
+                    id: msg.sender_id,
+                    name: msg.sender_first_name,
+                    lastname: msg.sender_last_name,
+                },
                 id: msg.id,
                 reply_to: msg.reply_to,
-                sender_id: msg.sender_id,
                 created_at: msg.created_at.to_string(),
                 message_kind: ChatMessageKind::ExitRequest(ChatExitRequest {
                     approved_by: msg.approved_by.map(|x| x as u32),
