@@ -1,3 +1,4 @@
+
 use crate::error::ApiResult;
 use crate::routes::chat::{
     ChatExitRequest, ChatMessageKind, ChatTextMessage, ConversationListElement,
@@ -12,6 +13,8 @@ use axum::{Extension, Json};
 use axum_extra::TypedHeader;
 use headers::authorization::Bearer;
 use sqlx::PgPool;
+
+use super::UserData;
 
 pub async fn send_message_controller<'a>(
     Extension(app_state): Extension<AppState>,
@@ -240,8 +243,14 @@ pub async fn get_conversations_controller<'a>(
 async fn get_conversations<'a>(
     db_pool: PgPool,
 ) -> ApiResult<'a, Json<Vec<ConversationListElement>>> {
-    let conversations = sqlx::query_as!(ConversationListElement, r#"
-        SELECT u.id as "recipient_id", TO_CHAR(MAX(m."created_at"), 'YYYY-MM-DD HH24:MI:SS') as "recent_message_date",
+    // sender_id -> max(recent_message.sender_id)
+    let raw_conversations = sqlx::query!(r#"
+        SELECT u.id as "recipient_id", 
+               u.first_name as "recipient_first_name",
+               u.last_name as "recipient_last_name",
+               TO_CHAR(MAX(m."created_at"),'YYYY-MM-DD HH24:MI:SS') as "recent_message_date",
+               MAX(recent_message.first_name) as "sender_first_name",
+               MAX(recent_message.last_name) as "sender_last_name",
            CASE WHEN MAX(recent_message.tm_content) IS NOT NULL THEN MAX(recent_message.tm_content)
                 WHEN MAX(recent_message.erm_id) IS NOT NULL THEN '<exit-request>'
                 END as "recent_message",
@@ -249,10 +258,11 @@ async fn get_conversations<'a>(
         FROM "user" u
         LEFT JOIN "message" m ON m."recipient_id" = u.id
         LEFT JOIN LATERAL (
-            SELECT recent_msg.*, tm.content as tm_content, erm.id as erm_id
+            SELECT recent_msg.*, tm.content as tm_content, erm.id as erm_id, sender.first_name, sender.last_name
             FROM "message" recent_msg
                  LEFT JOIN "text_message" tm on tm."message_id" = recent_msg.id
                  LEFT JOIN "exit_request_message" erm on erm."message_id" = recent_msg.id
+                 LEFT JOIN "user" sender on sender.id = u.id
             WHERE recent_msg."recipient_id" = u.id
             ORDER BY recent_msg."created_at" DESC
             LIMIT 1
@@ -264,10 +274,32 @@ async fn get_conversations<'a>(
         .fetch_all(&db_pool)
         .await;
 
-    match conversations {
-        Ok(val) => ApiResult::Ok(Json(val)),
-        Err(err) => ApiResult::from(err),
+    let raw_conversations = match raw_conversations{
+        Ok(rating) => rating,
+        Err(e) => {
+            return ApiResult::from(e);
+        }
+    };
+
+    let mut conversations: Vec<ConversationListElement> = vec![];
+    for conversation in raw_conversations {
+        conversations.push(ConversationListElement{
+        recipient: UserData  {
+            id: conversation.recipient_id,
+            name: conversation.recipient_first_name,
+            lastname: conversation.recipient_last_name,
+        },
+        sender: Option::Some(UserData  {
+            id: conversation.recipient_id,
+            name: conversation.sender_first_name.unwrap_or_default(),
+            lastname: conversation.sender_last_name.unwrap_or_default(),
+        }),
+        recent_message: conversation.recent_message,
+        recent_message_date: conversation.recent_message_date,
+    });
     }
+    
+    ApiResult::Ok(Json(conversations))
 }
 
 #[cfg(test)]

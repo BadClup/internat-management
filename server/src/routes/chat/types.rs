@@ -41,7 +41,7 @@ pub struct CreateChatMessageDto {
     pub reply_to: Option<i32>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UserData {
     pub id: i32,
     pub name: String,
@@ -61,8 +61,8 @@ pub struct GetChatMessageDto {
 
 #[derive(Serialize, Deserialize, Debug, Clone, sqlx::FromRow)]
 pub struct ConversationListElement {
-    pub recipient_id: i32,
-    pub sender_id: Option<i32>,
+    pub recipient: UserData,
+    pub sender: Option<UserData>,
     pub recent_message_date: Option<String>,
     pub recent_message: Option<String>,
 }
