@@ -243,7 +243,6 @@ pub async fn get_conversations_controller<'a>(
 async fn get_conversations<'a>(
     db_pool: PgPool,
 ) -> ApiResult<'a, Json<Vec<ConversationListElement>>> {
-    // sender_id -> max(recent_message.sender_id)
     let raw_conversations = sqlx::query!(r#"
         SELECT u.id as "recipient_id", 
                u.first_name as "recipient_first_name",
@@ -262,7 +261,7 @@ async fn get_conversations<'a>(
             FROM "message" recent_msg
                  LEFT JOIN "text_message" tm on tm."message_id" = recent_msg.id
                  LEFT JOIN "exit_request_message" erm on erm."message_id" = recent_msg.id
-                 LEFT JOIN "user" sender on sender.id = u.id
+                 LEFT JOIN "user" sender on sender.id = sender_id
             WHERE recent_msg."recipient_id" = u.id
             ORDER BY recent_msg."created_at" DESC
             LIMIT 1
@@ -289,11 +288,14 @@ async fn get_conversations<'a>(
             name: conversation.recipient_first_name,
             lastname: conversation.recipient_last_name,
         },
-        sender: Option::Some(UserData  {
-            id: conversation.recipient_id,
-            name: conversation.sender_first_name.unwrap_or_default(),
-            lastname: conversation.sender_last_name.unwrap_or_default(),
-        }),
+        sender: match conversation.sender_id {
+            Some(id) => Option::Some(UserData {
+                id,
+                name: conversation.sender_first_name.unwrap_or_default(),
+                lastname: conversation.sender_last_name.unwrap_or_default(),
+            }),
+            None => Option::None 
+        },
         recent_message: conversation.recent_message,
         recent_message_date: conversation.recent_message_date,
     });
