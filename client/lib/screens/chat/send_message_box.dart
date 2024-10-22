@@ -45,6 +45,10 @@ class SendMessagebox extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(left: 20.0),
                   child: IconButton.filled(
+                      style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.all(isDarkMode
+                              ? AppColors.primaryColor.dark
+                              : Colors.deepPurple[100])),
                       onPressed: () {
                         final content = _messageTextFieldController.text.trim();
 
@@ -53,7 +57,10 @@ class SendMessagebox extends StatelessWidget {
                             bearerToken: state.bearerToken!,
                             residentId: residentId));
                       },
-                      icon: Icon(Icons.send, color: isDarkMode ? AppColors.primaryColor.main : AppColors.primaryColor.dark)),
+                      icon: Icon(Icons.send,
+                          color: isDarkMode
+                              ? AppColors.primaryColor.light
+                              : AppColors.primaryColor.dark)),
                 ),
               ],
             ),
