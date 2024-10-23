@@ -1,4 +1,4 @@
-use crate::routes::chat::CreateChatMessageDto;
+use crate::routes::chat::NewChatMessageDto;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::error::{KafkaError, KafkaResult};
 use rdkafka::util::Timeout;
@@ -31,7 +31,7 @@ pub fn get_producer() -> KafkaResult<rdkafka::producer::FutureProducer> {
 }
 
 pub async fn send_chat_message(
-    chat_message: CreateChatMessageDto,
+    chat_message: NewChatMessageDto,
     message_id: u32,
 ) -> KafkaResult<()> {
     let producer = get_producer()?;
