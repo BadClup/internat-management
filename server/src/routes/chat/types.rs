@@ -41,6 +41,15 @@ pub struct CreateChatMessageDto {
     pub reply_to: Option<i32>,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct NewChatMessageDto {
+    #[serde(flatten)]
+    pub message_kind: ChatMessageKind,
+    pub resident: UserData,
+    pub created_at: String,
+    pub reply_to: Option<i32>,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UserData {
     pub id: i32,

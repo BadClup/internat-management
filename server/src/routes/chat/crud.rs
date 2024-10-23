@@ -1,4 +1,3 @@
-
 use crate::error::ApiResult;
 use crate::routes::chat::{
     ChatExitRequest, ChatMessageKind, ChatTextMessage, ConversationListElement,
@@ -14,7 +13,7 @@ use axum_extra::TypedHeader;
 use headers::authorization::Bearer;
 use sqlx::PgPool;
 
-use super::UserData;
+use super::{NewChatMessageDto, UserData};
 
 pub async fn send_message_controller<'a>(
     Extension(app_state): Extension<AppState>,
@@ -34,15 +33,19 @@ pub async fn send_message_controller<'a>(
 }
 
 async fn send_chat_message<'a>(
-    mut msg: CreateChatMessageDto,
+    msg: CreateChatMessageDto,
     db_pool: PgPool,
     user: UserPublicData,
 ) -> ApiResult<'a, ()> {
     let db_message = sqlx::query!(
         r#"
-            INSERT INTO "message" (sender_id, recipient_id, reply_to, created_at)
-            VALUES ($1, $2, $3, NOW())
-            RETURNING id, created_at
+            WITH new_message as (
+                INSERT INTO "message" (sender_id, recipient_id, reply_to, created_at)
+                VALUES ($1, $2, $3, NOW())
+                RETURNING id, created_at
+            )
+            SELECT nm.*, u.first_name, u.last_name FROM new_message nm
+            JOIN "user" u ON u.id = $1
         "#,
         user.id,
         msg.resident_id,
@@ -53,12 +56,10 @@ async fn send_chat_message<'a>(
 
     let db_message = match db_message {
         Ok(msg) => msg,
-        Err(_) => {
-            return ApiResult::Internal("Internal database error".to_string());
+        Err(e) => {
+            return ApiResult::from(e);
         }
     };
-
-    msg.created_at = Some(db_message.created_at.to_string());
 
     let pg_query = match msg.clone().message_kind {
         ChatMessageKind::Text(text_message) => {
@@ -87,11 +88,22 @@ async fn send_chat_message<'a>(
         }
     };
 
+    let new_message = NewChatMessageDto {
+        reply_to: msg.reply_to,
+        message_kind: msg.message_kind,
+        created_at: db_message.created_at.to_string(),
+        resident: UserData {
+            id: db_message.id,
+            name: db_message.first_name,
+            lastname: db_message.last_name,
+        },
+    };
+
     if let Err(err) = pg_query {
         return ApiResult::from(err);
     }
 
-    match kafka::send_chat_message(msg, db_message.id as u32).await {
+    match kafka::send_chat_message(new_message, db_message.id as u32).await {
         Ok(_) => ApiResult::Ok(()),
         Err(_) => ApiResult::Internal("Internal kafka error".to_string()),
     }
@@ -273,7 +285,7 @@ async fn get_conversations<'a>(
         .fetch_all(&db_pool)
         .await;
 
-    let raw_conversations = match raw_conversations{
+    let raw_conversations = match raw_conversations {
         Ok(rating) => rating,
         Err(e) => {
             return ApiResult::from(e);
@@ -282,25 +294,25 @@ async fn get_conversations<'a>(
 
     let mut conversations: Vec<ConversationListElement> = vec![];
     for conversation in raw_conversations {
-        conversations.push(ConversationListElement{
-        recipient: UserData  {
-            id: conversation.recipient_id,
-            name: conversation.recipient_first_name,
-            lastname: conversation.recipient_last_name,
-        },
-        sender: match conversation.sender_id {
-            Some(id) => Option::Some(UserData {
-                id,
-                name: conversation.sender_first_name.unwrap_or_default(),
-                lastname: conversation.sender_last_name.unwrap_or_default(),
-            }),
-            None => Option::None 
-        },
-        recent_message: conversation.recent_message,
-        recent_message_date: conversation.recent_message_date,
-    });
+        conversations.push(ConversationListElement {
+            recipient: UserData {
+                id: conversation.recipient_id,
+                name: conversation.recipient_first_name,
+                lastname: conversation.recipient_last_name,
+            },
+            sender: match conversation.sender_id {
+                Some(id) => Option::Some(UserData {
+                    id,
+                    name: conversation.sender_first_name.unwrap_or_default(),
+                    lastname: conversation.sender_last_name.unwrap_or_default(),
+                }),
+                None => Option::None,
+            },
+            recent_message: conversation.recent_message,
+            recent_message_date: conversation.recent_message_date,
+        });
     }
-    
+
     ApiResult::Ok(Json(conversations))
 }
 
