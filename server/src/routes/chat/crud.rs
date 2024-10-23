@@ -94,8 +94,8 @@ async fn send_chat_message<'a>(
         created_at: db_message.created_at.to_string(),
         resident: UserData {
             id: db_message.id,
-            name: db_message.first_name,
-            lastname: db_message.last_name,
+            first_name: db_message.first_name,
+            last_name: db_message.last_name,
         },
     };
 
@@ -183,13 +183,13 @@ async fn get_messages<'a>(
             result.push(GetChatMessageDto {
                 recipient: super::UserData {
                     id: msg.recipient_id,
-                    name: msg.recipient_first_name,
-                    lastname: msg.recipient_last_name,
+                    first_name: msg.recipient_first_name,
+                    last_name: msg.recipient_last_name,
                 },
                 sender: super::UserData {
                     id: msg.sender_id,
-                    name: msg.sender_first_name,
-                    lastname: msg.sender_last_name,
+                    first_name: msg.sender_first_name,
+                    last_name: msg.sender_last_name,
                 },
                 id: msg.id,
                 reply_to: msg.reply_to,
@@ -206,13 +206,13 @@ async fn get_messages<'a>(
             result.push(GetChatMessageDto {
                 recipient: super::UserData {
                     id: msg.recipient_id,
-                    name: msg.recipient_first_name,
-                    lastname: msg.recipient_last_name,
+                    first_name: msg.recipient_first_name,
+                    last_name: msg.recipient_last_name,
                 },
                 sender: super::UserData {
                     id: msg.sender_id,
-                    name: msg.sender_first_name,
-                    lastname: msg.sender_last_name,
+                    first_name: msg.sender_first_name,
+                    last_name: msg.sender_last_name,
                 },
                 id: msg.id,
                 reply_to: msg.reply_to,
@@ -297,14 +297,14 @@ async fn get_conversations<'a>(
         conversations.push(ConversationListElement {
             recipient: UserData {
                 id: conversation.recipient_id,
-                name: conversation.recipient_first_name,
-                lastname: conversation.recipient_last_name,
+                first_name: conversation.recipient_first_name,
+                last_name: conversation.recipient_last_name,
             },
             sender: match conversation.sender_id {
                 Some(id) => Option::Some(UserData {
                     id,
-                    name: conversation.sender_first_name.unwrap_or_default(),
-                    lastname: conversation.sender_last_name.unwrap_or_default(),
+                    first_name: conversation.sender_first_name.unwrap_or_default(),
+                    last_name: conversation.sender_last_name.unwrap_or_default(),
                 }),
                 None => Option::None,
             },

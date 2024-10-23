@@ -53,8 +53,8 @@ pub struct NewChatMessageDto {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UserData {
     pub id: i32,
-    pub name: String,
-    pub lastname: String,
+    pub first_name: String,
+    pub last_name: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, sqlx::FromRow)]
