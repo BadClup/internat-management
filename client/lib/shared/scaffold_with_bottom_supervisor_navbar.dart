@@ -6,16 +6,14 @@ import '../blocs/user/user_bloc.dart';
 import '../models/navigation_option.dart';
 
 class ScaffoldWithBottomSupervisorNavbar extends StatelessWidget {
-  const ScaffoldWithBottomSupervisorNavbar({
-    required this.navigationShell,
-    super.key
-  });
+  const ScaffoldWithBottomSupervisorNavbar(
+      {required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
   static List<NavOption> supervisorRoutes = [
     NavOption(
-        route: "/supervisor", label: "Dupa", icon: const Icon(Icons.hexagon)),
+        route: "/supervisor", label: "Start", icon: const Icon(Icons.hexagon)),
     NavOption(
         route: "/supervisor/chat",
         label: "Czat",

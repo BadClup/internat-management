@@ -2,7 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:internat_management/blocs/chat/chat_bloc.dart';
 import 'package:internat_management/screens/chat/chat.dart';
-import 'package:internat_management/screens/chat/supervisor/chat_groups.dart';
+import 'package:internat_management/screens/chat/supervisor/chat_conversations.dart';
 import 'package:internat_management/screens/home/home.dart';
 import 'package:internat_management/screens/login/login.dart';
 import 'package:internat_management/screens/settings/settings.dart';

@@ -42,8 +42,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       try {
         emit(const ChatState(isLoading: true, error: null));
         final data = await getConversations(event.bearerToken);
+        print(data);
         emit(ChatState(isLoading: false, conversations: data));
       } catch (e) {
+        print(e);
         emit(const ChatState(
             isLoading: false, error: "Nie udało się pobrać konwersacji"));
       }

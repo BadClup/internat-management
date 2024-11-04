@@ -49,29 +49,45 @@ class Message extends Equatable {
   List get props => [content, id, recipientId, senderId, createdAt];
 }
 
+class ConversationUser {
+  final int id;
+  final String firstName;
+  final String lastName;
+
+  const ConversationUser(
+      {required this.id, required this.firstName, required this.lastName});
+
+  factory ConversationUser.fromJson(Map<String, dynamic> json) {
+    return ConversationUser(
+        id: json['id'],
+        firstName: json['first_name'],
+        lastName: json['last_name']);
+  }
+}
+
 class Conversation extends Equatable {
-  final int recipientId;
-  final int? senderId;
+  final ConversationUser recipient;
+  final ConversationUser? sender;
   final String? recentMessageDate;
   final String? recentMessage;
 
   const Conversation(
-      {required this.recipientId,
-      this.senderId,
+      {required this.recipient,
+      this.sender,
       this.recentMessage,
       this.recentMessageDate});
 
   factory Conversation.fromJson(Map<String, dynamic> json) {
     return switch (json) {
       {
-        'recipient_id': int recipientId,
-        'sender_id': int? senderId,
+        'recipient': Map<String, dynamic> recipient,
+        'sender': Map<String, dynamic>? sender,
         'recent_message_date': String? recentMessageDate,
         'recent_message': String? recentMessage,
       } =>
         Conversation(
-            recipientId: recipientId,
-            senderId: senderId,
+            recipient: ConversationUser.fromJson(recipient),
+            sender: sender != null ? ConversationUser.fromJson(sender) : null,
             recentMessage: recentMessage,
             recentMessageDate: recentMessageDate),
       _ => throw const FormatException("Failed to load Message"),
@@ -79,7 +95,7 @@ class Conversation extends Equatable {
   }
 
   @override
-  List get props => [recipientId, senderId, recentMessageDate, recentMessage];
+  List get props => [recipient, sender, recentMessageDate, recentMessage];
 }
 
 Future<List<Message>> getUserMessages(int userId, String bearerToken) async {
@@ -114,8 +130,6 @@ Future<void> sendMessage(
   if (!response.isStatusOk()) {
     throw Exception("Failed to send Message");
   }
-
-  print("message was sent!");
 }
 
 Future<List<Conversation>> getConversations(String bearerToken) async {
@@ -136,7 +150,8 @@ Future<List<Conversation>> getConversations(String bearerToken) async {
   return conversations;
 }
 
-Future<IOWebSocketChannel> connectToWebsocket(int residentId, String bearerToken) async {
+Future<IOWebSocketChannel> connectToWebsocket(
+    int residentId, String bearerToken) async {
   final apiPrefix = dotenv.env["API_URL"];
   final webSocketKey = dotenv.env["WEB_SOCKET_KEY"];
   final url = Uri.parse("$apiPrefix/chat/ws");
@@ -147,12 +162,12 @@ Future<IOWebSocketChannel> connectToWebsocket(int residentId, String bearerToken
   httpClientRequest.headers.set("resident-id", residentId);
   httpClientRequest.headers.set("Connection", "Upgrade");
   httpClientRequest.headers.set("Upgrade", "websocket");
-  httpClientRequest.headers.set("Sec-WebSocket-Key", base64.encode(utf8.encode(webSocketKey!)));
+  httpClientRequest.headers
+      .set("Sec-WebSocket-Key", base64.encode(utf8.encode(webSocketKey!)));
   httpClientRequest.headers.set("Sec-WebSocket-Version", "13");
 
   final httpClientResponse = await httpClientRequest.close();
   if (httpClientResponse.statusCode != HttpStatus.switchingProtocols) {
-    print('Failed to connect to WebSocket: ${httpClientResponse.statusCode} ${httpClientResponse.reasonPhrase}');
     throw Exception(
         'Failed to connect to WebSocket: ${httpClientResponse.statusCode} ${httpClientResponse.reasonPhrase}');
   }

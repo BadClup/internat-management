@@ -36,12 +36,15 @@ class ChatGroups extends StatelessWidget {
                       ? convertToUtf8(recentMessage)
                       : "Brak";
 
+                  final fullName = convertToUtf8(
+                      "${conversation.recipient.firstName} ${conversation.recipient.lastName}");
+
                   return ListTile(
                     leading: const Icon(Icons.person),
-                    title: Text("Użytkownik o id: ${conversation.recipientId}"),
+                    title: Text(fullName),
                     subtitle: Text("Ostatnia wiadomość: $lastMessage"),
                     onTap: () => context
-                        .go("/supervisor/chat/${conversation.recipientId}"),
+                        .go("/supervisor/chat/${conversation.recipient.id}"),
                   );
                 }).toList();
 
