@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:internat_management/models/chat.dart';
 import 'package:web_socket_channel/io.dart';
 
@@ -14,12 +15,12 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
       try {
         final data = await getUserMessages(event.userId, event.bearerToken);
-        // print("Got messages!");
         emit(ChatState(messages: data, isLoading: false, error: null));
       } catch (e) {
-        // print("error on getMessages: $e");
         emit(const ChatState(
-            messages: null, isLoading: false, error: "Could not get messages"));
+            messages: null,
+            isLoading: false,
+            error: "Nie udało się pobrać wiadomości"));
       }
     });
 
@@ -32,8 +33,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
         emit(ChatState(messages: data, isLoading: false, error: null));
       } catch (e) {
-        print("Error on SendMessage: $e");
-        emit(ChatState(isLoading: false, error: "$e"));
+        emit(const ChatState(
+            isLoading: false, error: "Nie udało się wysłać wiadomości"));
       }
     });
 
@@ -43,38 +44,29 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         final data = await getConversations(event.bearerToken);
         emit(ChatState(isLoading: false, conversations: data));
       } catch (e) {
-        print("Error on GetConversations: $e");
         emit(const ChatState(
             isLoading: false, error: "Nie udało się pobrać konwersacji"));
       }
     });
 
-    on<ConnectToWebsocket>((event, emit) async {
-      try {
-        final channel =
-            await connectToWebsocket(event.residentId, event.bearerToken);
-
-        print("Connected to websocket");
-        emit(ChatState(wsChannel: channel));
-      } catch (e) {
-        print("Error on ConnectToWebsocket: $e");
-      }
-    });
-
     on<ListenWebsocket>((event, emit) async {
-      print("start listening websocket");
-
       final channel = event.channel;
 
       channel.stream.listen(
         (data) {
-          print("New message: $data");
+          if (kDebugMode) {
+            print("New message: $data");
+          }
         },
         onError: (error) {
-          print("Error in WebSocket: $error");
+          if (kDebugMode) {
+            print("Error in WebSocket: $error");
+          }
         },
         onDone: () {
-          print("WebSocket stream closed");
+          if (kDebugMode) {
+            print("WebSocket stream closed");
+          }
         },
       );
     });
@@ -89,7 +81,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         emit(ChatState(
             messages: data, wsChannel: channel, isLoading: false, error: null));
       } catch (e) {
-        emit(ChatState(isLoading: false, error: "$e"));
+        emit(const ChatState(
+            isLoading: false, error: "Nie udało się pobrać wiadomości"));
       }
     });
   }

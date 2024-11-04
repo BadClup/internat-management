@@ -35,9 +35,7 @@ class ChatScreen extends StatelessWidget {
               }
 
               if (state.error != null) {
-                return const Expanded(
-                    child:
-                        Center(child: Text("Nie udało sie pobrać wiadomośći")));
+                return Expanded(child: Center(child: Text(state.error!)));
               }
 
               if (messages != null && messages.isNotEmpty) {

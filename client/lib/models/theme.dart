@@ -11,18 +11,18 @@ class ColorTypes {
 
 class AppColors {
   static ColorTypes primaryColor = ColorTypes(
-    main: const Color.fromRGBO(103, 80, 164, 1),
+    main: const Color.fromRGBO(103, 80, 164, 1), // purple
     light: const Color.fromRGBO(139, 116, 203, 1),
     dark: const Color.fromRGBO(79, 55, 139, 1),
   );
 
   static ColorTypes error = ColorTypes(
-      main: const Color.fromRGBO(208, 68, 65, 1),
+      main: const Color.fromRGBO(208, 68, 65, 1), // red
       light: const Color.fromRGBO(242, 132, 130, 1),
       dark: const Color.fromRGBO(172, 27, 24, 1));
 
   static ColorTypes grayColor = ColorTypes(
-    light: const Color.fromRGBO(212, 212, 212, 1),
+    light: const Color.fromRGBO(212, 212, 212, 1), // gray
     dark: const Color.fromRGBO(92, 92, 92, 1),
   );
 
@@ -33,7 +33,6 @@ class AppColors {
 
   static Color white = const Color.fromRGBO(255, 255, 255, 1);
   static Color black = const Color.fromRGBO(0, 0, 0, 1);
-// static Color textColor = const Color.fromRGBO(29, 27, 32, 1);
 }
 
 class AppTheme {

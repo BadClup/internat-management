@@ -40,17 +40,6 @@ class GetConversations extends ChatEvent {
   List<Object> get props => [bearerToken];
 }
 
-class ConnectToWebsocket extends ChatEvent {
-  final String bearerToken;
-  final int residentId;
-
-  const ConnectToWebsocket(
-      {required this.residentId, required this.bearerToken});
-
-  @override
-  List<Object> get props => [bearerToken, residentId];
-}
-
 class ListenWebsocket extends ChatEvent {
   final IOWebSocketChannel channel;
 
