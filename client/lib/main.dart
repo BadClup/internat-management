@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:internat_management/blocs/chat/chat_bloc.dart';
 import 'package:internat_management/blocs/theme/theme_bloc.dart';
 import 'package:internat_management/blocs/user/user_bloc.dart';
 import 'package:internat_management/router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 Future main() async {
   await dotenv.load(fileName: ".env");
+  await initializeDateFormatting("pl", null);
 
   runApp(const MyApp());
 }
@@ -19,7 +22,8 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
         providers: [
           BlocProvider(create: (context) => UserBloc()..add(const InitUser())),
-          BlocProvider(create: (context) => ThemeBloc()..add(InitTheme()))
+          BlocProvider(create: (context) => ThemeBloc()..add(InitTheme())),
+          BlocProvider(create: (context) => ChatBloc()),
         ],
         child: BlocBuilder<ThemeBloc, ThemeState>(
           builder: (context, state) {

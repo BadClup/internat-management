@@ -23,24 +23,14 @@ class ProfileSettingsScreen extends StatelessWidget {
               themeDialogBuilder(context);
             },
           ),
-          SizedBox(
-            width: double.infinity,
-            child: Padding(
-              padding: const EdgeInsets.all(30.0),
-              child: TextButton(
-                onPressed: () {
-                  context.read<UserBloc>().add(const LogoutUser());
-                },
-                style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.all(AppColors.error),
-                ),
-                child: const Text(
-                  "Wyloguj",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-          )
+          ListTile(
+            leading: Icon(Icons.logout, color: AppColors.error.main,),
+            title: const Text("Wyloguj"),
+            subtitle: const Text("Kliknij aby wylogować się z aplikacji"),
+            onTap: () {
+              context.read<UserBloc>().add(const LogoutUser());
+            },
+          ),
         ],
       ),
     );

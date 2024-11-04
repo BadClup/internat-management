@@ -23,6 +23,10 @@ class LoginScreen extends StatelessWidget {
         if (state.user.role == UserRole.resident) {
           context.go('/resident');
         }
+
+        if (state.user.role == UserRole.supervisor) {
+          context.go('/supervisor');
+        }
       },
       child: Scaffold(
         body: Padding(
@@ -57,7 +61,7 @@ class LoginScreen extends StatelessWidget {
                             padding: const EdgeInsets.only(top: 15),
                             child: Text(
                               state.error.mainError!,
-                              style: TextStyle(color: AppColors.error),
+                              style: TextStyle(color: AppColors.error.main),
                             ),
                           )
                         : const SizedBox.shrink(),
