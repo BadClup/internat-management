@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:internat_management/blocs/chat/chat_bloc.dart';
+import 'package:internat_management/models/chat.dart';
 import 'package:internat_management/screens/chat/chat.dart';
 import 'package:internat_management/screens/chat/supervisor/chat_conversations.dart';
 import 'package:internat_management/screens/home/home.dart';
@@ -36,16 +37,21 @@ final router = GoRouter(initialLocation: "/login", routes: [
                 path: "/resident/chat",
                 builder: (context, state) {
                   final userState = context.watch<UserBloc>().state;
-                  final userId = userState.user.id;
+                  final user = userState.user;
                   final bearerToken = userState.bearerToken;
 
-                  if (userId != null && bearerToken != null) {
+                  if (user.id != null && bearerToken != null) {
                     context.read<ChatBloc>().add(GetMessagesAndConnectToWs(
-                        bearerToken: bearerToken, residentId: userId));
+                        bearerToken: bearerToken, residentId: user.id!));
                   }
 
+                  final resident = ConversationUser(
+                      id: user.id!,
+                      firstName: user.firstName!,
+                      lastName: user.lastName!);
+
                   return ChatScreen(
-                    residentId: userId!,
+                    resident: resident,
                   );
                 }),
           ],
@@ -87,7 +93,7 @@ final router = GoRouter(initialLocation: "/login", routes: [
         StatefulShellBranch(
           routes: [
             GoRoute(
-                path: "/supervisor/chat",
+                path: "/supervisor/conversations",
                 builder: (context, state) {
                   final bearerToken =
                       context.watch<UserBloc>().state.bearerToken;
@@ -99,20 +105,19 @@ final router = GoRouter(initialLocation: "/login", routes: [
                   return const ChatGroups();
                 }),
             GoRoute(
-                path: "/supervisor/chat/:userId",
+                path: "/supervisor/chat",
                 builder: (context, state) {
                   final userState = context.watch<UserBloc>().state;
-                  final parameter = state.pathParameters["userId"]!;
+                  ConversationUser resident = state.extra as ConversationUser;
 
-                  final residentId = int.parse(parameter);
                   final bearerToken = userState.bearerToken;
 
                   if (bearerToken != null) {
                     context.read<ChatBloc>().add(GetMessagesAndConnectToWs(
-                        residentId: residentId, bearerToken: bearerToken));
+                        residentId: resident.id, bearerToken: bearerToken));
                   }
 
-                  return ChatScreen(residentId: residentId);
+                  return ChatScreen(resident: resident);
                 }),
           ],
         ),

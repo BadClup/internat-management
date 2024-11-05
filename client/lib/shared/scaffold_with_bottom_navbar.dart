@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:internat_management/models/theme.dart';
 
+import '../blocs/theme/theme_bloc.dart';
 import '../blocs/user/user_bloc.dart';
 import '../models/navigation_option.dart';
-import '../models/user.dart';
 
 class ScaffoldWithBottomNavBar extends StatelessWidget {
   const ScaffoldWithBottomNavBar({
@@ -15,9 +16,10 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
   /// The navigation shell and container for the branch Navigators.
   final StatefulNavigationShell navigationShell;
 
+
   static List<NavOption> residentRoutes = [
     NavOption(
-        route: "/resident", label: "Start", icon: const Icon(Icons.hexagon)),
+        route: "/resident", label: "Start", icon: const Icon(Icons.home_filled)),
     NavOption(
         route: "/resident/chat",
         label: "Czat",
@@ -38,6 +40,9 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selectedTheme = context.watch<ThemeBloc>().state.themeData;
+    final isDarkMode = selectedTheme == AppTheme.darkTheme;
+
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: BlocBuilder<UserBloc, UserState>(
@@ -47,6 +52,8 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
               return NavigationDestination(
                   icon: option.icon, label: option.label);
             }).toList(),
+            indicatorColor: isDarkMode ? AppColors.primaryColor.main :  AppColors.primaryColor.light ,
+            shadowColor: AppColors.grayColor.light,
             selectedIndex: navigationShell.currentIndex,
             onDestinationSelected: (int index) {
               navigationShell.goBranch(
@@ -54,6 +61,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                 initialLocation: index == navigationShell.currentIndex,
               );
             },
+
           );
         },
       ),

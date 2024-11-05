@@ -15,7 +15,7 @@ class ScaffoldWithBottomSupervisorNavbar extends StatelessWidget {
     NavOption(
         route: "/supervisor", label: "Start", icon: const Icon(Icons.hexagon)),
     NavOption(
-        route: "/supervisor/chat",
+        route: "/supervisor/conversations",
         label: "Czat",
         icon: const Icon(Icons.chat_bubble)),
     NavOption(

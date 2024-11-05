@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:internat_management/utils/convert_to_utf_8.dart';
 import 'package:web_socket_channel/io.dart';
 
 extension StatusExtension on http.Response {
@@ -12,44 +13,7 @@ extension StatusExtension on http.Response {
   }
 }
 
-class Message extends Equatable {
-  final String content;
-  final int id;
-  final int recipientId;
-  final int senderId;
-  final String createdAt;
-
-  const Message(
-      {required this.recipientId,
-      required this.senderId,
-      required this.createdAt,
-      required this.id,
-      required this.content});
-
-  factory Message.fromJson(Map<String, dynamic> json) {
-    return switch (json) {
-      {
-        'content': String content,
-        'id': int id,
-        'recipient_id': int recipientId,
-        'sender_id': int senderId,
-        'created_at': String createdAt,
-      } =>
-        Message(
-            content: content,
-            id: id,
-            createdAt: createdAt,
-            recipientId: recipientId,
-            senderId: senderId),
-      _ => throw const FormatException("Failed to load Message"),
-    };
-  }
-
-  @override
-  List get props => [content, id, recipientId, senderId, createdAt];
-}
-
-class ConversationUser {
+class ConversationUser extends Equatable {
   final int id;
   final String firstName;
   final String lastName;
@@ -60,9 +24,49 @@ class ConversationUser {
   factory ConversationUser.fromJson(Map<String, dynamic> json) {
     return ConversationUser(
         id: json['id'],
-        firstName: json['first_name'],
-        lastName: json['last_name']);
+        firstName: convertToUtf8(json['first_name']),
+        lastName: convertToUtf8(json['last_name']));
   }
+
+  @override
+  List get props => [id, firstName, lastName];
+}
+
+class Message extends Equatable {
+  final String content;
+  final int id;
+  final ConversationUser recipient;
+  final ConversationUser sender;
+  final String createdAt;
+
+  const Message(
+      {required this.recipient,
+      required this.sender,
+      required this.createdAt,
+      required this.id,
+      required this.content});
+
+  factory Message.fromJson(Map<String, dynamic> json) {
+    return switch (json) {
+      {
+        'content': String content,
+        'id': int id,
+        'recipient': Map<String, dynamic> recipient,
+        'sender': Map<String, dynamic> sender,
+        'created_at': String createdAt,
+      } =>
+        Message(
+            content: convertToUtf8(content),
+            id: id,
+            createdAt: createdAt,
+            recipient: ConversationUser.fromJson(recipient),
+            sender: ConversationUser.fromJson(sender)),
+      _ => throw const FormatException("Failed to load Message"),
+    };
+  }
+
+  @override
+  List get props => [content, id, recipient, sender, createdAt];
 }
 
 class Conversation extends Equatable {
@@ -88,7 +92,7 @@ class Conversation extends Equatable {
         Conversation(
             recipient: ConversationUser.fromJson(recipient),
             sender: sender != null ? ConversationUser.fromJson(sender) : null,
-            recentMessage: recentMessage,
+            recentMessage: recentMessage != null ? convertToUtf8(recentMessage) : null,
             recentMessageDate: recentMessageDate),
       _ => throw const FormatException("Failed to load Message"),
     };

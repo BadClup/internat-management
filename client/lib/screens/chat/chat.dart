@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:internat_management/blocs/chat/chat_bloc.dart';
+import 'package:internat_management/blocs/user/user_bloc.dart';
+import 'package:internat_management/models/chat.dart';
 import 'package:internat_management/screens/chat/message_box.dart';
 import 'package:internat_management/screens/chat/send_message_box.dart';
-import 'package:internat_management/shared/navbar.dart';
+import 'package:internat_management/shared/conversation_app_bar.dart';
 
 class ChatScreen extends StatelessWidget {
-  const ChatScreen({required this.residentId, super.key});
+  const ChatScreen({required this.resident, super.key});
 
-  final int residentId;
+  final ConversationUser resident;
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<UserBloc>().state.user;
+    final conversationName = user.id == resident.id
+        ? "Konwersacja z Wychowawcami"
+        : "Konwersacja z ${resident.firstName} ${resident.lastName}";
+
     return BlocListener<ChatBloc, ChatState>(
       listener: (context, state) {
         final channel = state.wsChannel;
@@ -21,7 +28,7 @@ class ChatScreen extends StatelessWidget {
         }
       },
       child: Scaffold(
-        appBar: const SharedAppBar(),
+        appBar: ConversationAppBar(conversationName: conversationName),
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.end,
@@ -71,7 +78,7 @@ class ChatScreen extends StatelessWidget {
               );
             }),
             SendMessagebox(
-              residentId: residentId,
+              residentId: resident.id,
             )
           ],
         ),

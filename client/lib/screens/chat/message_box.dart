@@ -38,21 +38,21 @@ class MessageBox extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       width: double.maxFinite,
       child: Row(
-        mainAxisAlignment: userId == message.senderId
+        mainAxisAlignment: userId == message.sender.id
             ? MainAxisAlignment.end
             : MainAxisAlignment.start,
         children: [
           SizedBox(
             width: 200,
             child: Column(
-              crossAxisAlignment: userId == message.senderId
+              crossAxisAlignment: userId == message.sender.id
                   ? CrossAxisAlignment.end
                   : CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
                   decoration: BoxDecoration(
-                      color: userId == message.senderId
+                      color: userId == message.sender.id
                           ? messageMainColor
                           : messageSecondaryColor,
                       borderRadius: BorderRadius.circular(20)),

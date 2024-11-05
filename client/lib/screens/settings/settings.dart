@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:internat_management/screens/settings/theme_dialog.dart';
-import 'package:internat_management/shared/navbar.dart';
+import 'package:internat_management/shared/default_app_bar.dart';
 import 'package:internat_management/models/theme.dart';
 
 import '../../blocs/user/user_bloc.dart';

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:internat_management/shared/navbar.dart';
-import 'package:internat_management/utils/convert_to_utf_8.dart';
+import 'package:internat_management/shared/default_app_bar.dart';
 
 import '../../../blocs/chat/chat_bloc.dart';
 
@@ -32,19 +31,17 @@ class ChatGroups extends StatelessWidget {
               if (conversations != null) {
                 final conversationList = conversations.map((conversation) {
                   final recentMessage = conversation.recentMessage;
-                  final lastMessage = recentMessage != null
-                      ? convertToUtf8(recentMessage)
-                      : "Brak";
+                  final lastMessage = recentMessage ?? "Brak";
 
-                  final fullName = convertToUtf8(
-                      "${conversation.recipient.firstName} ${conversation.recipient.lastName}");
+                  final fullName = "${conversation.recipient.firstName} ${conversation.recipient.lastName}";
 
                   return ListTile(
                     leading: const Icon(Icons.person),
                     title: Text(fullName),
                     subtitle: Text("Ostatnia wiadomość: $lastMessage"),
-                    onTap: () => context
-                        .go("/supervisor/chat/${conversation.recipient.id}"),
+                    onTap: () {
+                      context.go("/supervisor/chat", extra: conversation.recipient);
+                    },
                   );
                 }).toList();
 
